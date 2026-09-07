@@ -1,1 +1,51 @@
-# br_tours_and_travels_be
+# BR Tours and Travels admin
+
+Independent React 19 + Vite 8 administration application. It is mounted at
+`/admin/`; Vite's base, React Router's basename and the supplied Nginx fallback
+all preserve nested-route refreshes.
+
+The application is connected to the Express API and includes session login,
+password reset/profile management, role-based navigation and route guards,
+live dashboard analytics, package/taxonomy/media/gallery management, the page
+and blog CMS, homepage/navigation/settings management, enquiry operations,
+notification retry, user administration and audit logs. Draft previews remain
+authenticated and carry no public preview bypass.
+
+## Theme and Tailwind
+
+Tailwind CSS 4 is compiled through `@tailwindcss/vite`. `src/globals.css` is the
+single theme source for brand, neutral, status, focus, shadow and typography
+tokens plus global element defaults. `src/styles.css` contains component/layout
+rules and consumes those variables; it does not define independent colours.
+
+## Environment
+
+- `.env.local` contains local browser-safe settings.
+- `.env.example` documents the frontend contract.
+- `.env.test` points Playwright at the isolated test API.
+
+Only `VITE_`-prefixed public values belong here. Database, SMTP, storage and
+session secrets belong only in the API project.
+
+## Commands
+
+    npm install
+    npm run dev
+    npm run lint
+    npm run typecheck
+    npm test
+    npm run build
+    npm run preview
+    npm run test:e2e
+
+`npm run test:e2e` starts the API against guarded `br_tours_test` fixtures and
+runs one Chrome worker. It verifies the Super Admin publication workflow,
+Content Editor/Sales Agent UI and direct-API permission boundaries, nested
+refreshes, keyboard navigation and a 390 px mobile viewport. The fixture refuses
+to operate unless `NODE_ENV=test` and the database name is `br_tours_test`.
+
+All dependencies and environment files are local to this folder and use npm;
+the workspace root is not a package.
+
+See `ADMIN_USER_GUIDE.md` for role boundaries, publication, media, enquiry and
+account workflows.
