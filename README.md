@@ -21,8 +21,6 @@ rules and consumes those variables; it does not define independent colours.
 ## Environment
 
 - `.env.local` contains local browser-safe settings.
-- `.env.example` documents the frontend contract.
-- `.env.test` points Playwright at the isolated test API.
 
 Only `VITE_`-prefixed public values belong here. Database, SMTP, storage and
 session secrets belong only in the API project.
@@ -33,16 +31,8 @@ session secrets belong only in the API project.
     npm run dev
     npm run lint
     npm run typecheck
-    npm test
     npm run build
     npm run preview
-    npm run test:e2e
-
-`npm run test:e2e` starts the API against guarded `br_tours_test` fixtures and
-runs one Chrome worker. It verifies the Super Admin publication workflow,
-Content Editor/Sales Agent UI and direct-API permission boundaries, nested
-refreshes, keyboard navigation and a 390 px mobile viewport. The fixture refuses
-to operate unless `NODE_ENV=test` and the database name is `br_tours_test`.
 
 All dependencies and environment files are local to this folder and use npm;
 the workspace root is not a package.

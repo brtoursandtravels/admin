@@ -13,9 +13,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 5173",
     "lint": "eslint src vite.config.ts --max-warnings=0",
-    "typecheck": "tsc -b --pretty false",
-    "test": "vitest run --passWithNoTests",
-    "test:e2e": "playwright test"
+    "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.1",
@@ -28,7 +26,6 @@
   },
   "devDependencies": {
     "@eslint/js": "9.39.5",
-    "@playwright/test": "1.62.1",
     "@tailwindcss/vite": "4.3.3",
     "@types/node": "26.4.0",
     "@types/react": "19.2.2",
@@ -41,7 +38,6 @@
     "tailwindcss": "4.3.3",
     "typescript": "5.9.3",
     "typescript-eslint": "8.68.0",
-    "vite": "8.2.2",
-    "vitest": "4.1.11"
+    "vite": "8.2.2"
   }
 }
