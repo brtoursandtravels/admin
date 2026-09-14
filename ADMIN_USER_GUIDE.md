@@ -32,7 +32,12 @@ The API enforces these rules even if a user manually calls a hidden endpoint.
 Use **Homepage** to reorder the supported finite sections and change visibility.
 Use **Pages** for About and policies, **Settings** for only confirmed public
 business/contact facts, **Navigation** for menus/footer links, and **FAQs** or
-**Testimonials** for approved records. Unapproved testimonials remain hidden.
+**Testimonials** for approved records. For each testimonial, add the public
+name and quote, then optionally add the traveller location, trip name, rating,
+display order and publish date. Record consent evidence before selecting
+**Approved for public display**. Only approved, published testimonials appear
+on the public website; drafts, archived records and unapproved testimonials
+remain hidden.
 
 Journal articles accept sanitized rich content, a public author identity, tags,
 SEO, related articles and related packages. Never paste scripts, templates,

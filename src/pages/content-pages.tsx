@@ -849,13 +849,29 @@ type Faq = {
 type Testimonial = {
   id: string;
   publicName: string;
+  location: string | null;
+  tripName: string | null;
   quote: string;
+  rating: number;
   consentNotes: string | null;
   approved: boolean;
   sortOrder: number;
   status: PublicationStatus;
   publishedAt: string | null;
   isDemo: boolean;
+};
+const blankTestimonial: Partial<Testimonial> = {
+  publicName: "",
+  location: "",
+  tripName: "",
+  quote: "",
+  rating: 5,
+  consentNotes: "",
+  approved: false,
+  sortOrder: 0,
+  status: "DRAFT",
+  publishedAt: null,
+  isDemo: false,
 };
 export function EngagementPage() {
   const { csrfToken } = useAuth();
@@ -870,15 +886,8 @@ export function EngagementPage() {
     isDemo: false,
     packageId: null,
   });
-  const [testimonial, setTestimonial] = useState<Partial<Testimonial>>({
-    publicName: "",
-    quote: "",
-    consentNotes: "",
-    approved: false,
-    sortOrder: 0,
-    status: "DRAFT",
-    isDemo: false,
-  });
+  const [testimonial, setTestimonial] =
+    useState<Partial<Testimonial>>(blankTestimonial);
   const faqs = useQuery({
     queryKey: ["faqs"],
     queryFn: () => apiRequest<DataResponse<Faq[]>>("/admin/faqs"),
@@ -936,27 +945,24 @@ export function EngagementPage() {
           csrfToken,
           body: {
             publicName: testimonial.publicName,
+            location: testimonial.location || null,
+            tripName: testimonial.tripName || null,
             quote: testimonial.quote,
+            rating: Number(testimonial.rating ?? 5),
             consentNotes: testimonial.consentNotes || null,
             approved: Boolean(testimonial.approved),
             sortOrder: Number(testimonial.sortOrder ?? 0),
             status: testimonial.status ?? "DRAFT",
-            publishedAt: testimonial.publishedAt ?? null,
+            publishedAt: testimonial.publishedAt
+              ? new Date(testimonial.publishedAt).toISOString()
+              : null,
             isDemo: Boolean(testimonial.isDemo),
           },
         },
       ),
     onSuccess: async () => {
       notify("Testimonial saved with approval and consent rules enforced.");
-      setTestimonial({
-        publicName: "",
-        quote: "",
-        consentNotes: "",
-        approved: false,
-        sortOrder: 0,
-        status: "DRAFT",
-        isDemo: false,
-      });
+      setTestimonial(blankTestimonial);
       await client.invalidateQueries({ queryKey: ["testimonials"] });
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
@@ -1125,65 +1131,159 @@ export function EngagementPage() {
           <Card className="overflow-hidden p-0!">
             {testimonials.isPending ? (
               <LoadingPanel />
+            ) : testimonials.isError ? (
+              <ErrorPanel
+                error={testimonials.error}
+                retry={() => void testimonials.refetch()}
+              />
+            ) : testimonials.data.data.length === 0 ? (
+              <EmptyState
+                title="No testimonials yet"
+                description="Add a traveller story, record consent, then approve and publish it."
+              />
             ) : (
-              <div className="overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_th]:whitespace-nowrap [&_th]:bg-admin-surface-muted [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-[0.65rem] [&_th]:uppercase [&_th]:tracking-[0.08em] [&_th]:text-admin-ink-muted [&_td]:border-t [&_td]:border-admin-border-soft [&_td]:px-4 [&_td]:py-3.5 [&_td]:align-top [&_td]:text-[0.8rem] [&_td_small]:mt-1 [&_td_small]:block [&_td_small]:text-admin-ink-subtle">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Public name</th>
-                      <th>Status</th>
-                      <th>Approval</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {testimonials.data?.data.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          <span className="font-bold text-admin-brand-deep">{item.publicName}</span>
-                          <small>{item.quote.slice(0, 80)}</small>
-                        </td>
-                        <td>
-                          <StatusBadge value={item.status} />
-                        </td>
-                        <td>
-                          {item.approved ? (
-                            <StatusBadge value="APPROVED" />
-                          ) : (
-                            "Not approved"
-                          )}
-                        </td>
-                        <td>
-                          <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
-                            <Button
-                              variant="secondary"
-                              onClick={() => setTestimonial(item)}
-                            >
-                              Edit
-                            </Button>
-                            <ConfirmButton
-                              question="Archive this testimonial?"
-                              onClick={() =>
-                                void archive("testimonials", item.id)
-                              }
-                            >
-                              Archive
-                            </ConfirmButton>
-                          </div>
-                        </td>
+              <div>
+                <div className="overflow-x-auto max-[680px]:hidden [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_th]:whitespace-nowrap [&_th]:bg-admin-surface-muted [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-[0.65rem] [&_th]:uppercase [&_th]:tracking-[0.08em] [&_th]:text-admin-ink-muted [&_td]:border-t [&_td]:border-admin-border-soft [&_td]:px-4 [&_td]:py-3.5 [&_td]:align-top [&_td]:text-[0.8rem] [&_td_small]:mt-1 [&_td_small]:block [&_td_small]:text-admin-ink-subtle">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Traveller</th>
+                        <th>Rating</th>
+                        <th>Status</th>
+                        <th>Order</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {testimonials.data.data.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <span className="font-bold text-admin-brand-deep">
+                              {item.publicName}
+                            </span>
+                            <small>
+                              {[item.tripName, item.location]
+                                .filter(Boolean)
+                                .join(" - ") || item.quote.slice(0, 80)}
+                            </small>
+                          </td>
+                          <td>{item.rating} / 5</td>
+                          <td>
+                            <div className="grid justify-items-start gap-1.5">
+                              <StatusBadge value={item.status} />
+                              {item.approved ? (
+                                <StatusBadge value="APPROVED" />
+                              ) : (
+                                <span className="text-admin-ink-subtle">
+                                  Not approved
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>{item.sortOrder}</td>
+                          <td>
+                            <div className="flex flex-wrap items-center gap-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
+                              <Button
+                                variant="secondary"
+                                onClick={() => setTestimonial(item)}
+                              >
+                                Edit
+                              </Button>
+                              {item.status !== "ARCHIVED" ? (
+                                <ConfirmButton
+                                  question="Archive this testimonial?"
+                                  onClick={() =>
+                                    void archive("testimonials", item.id)
+                                  }
+                                >
+                                  Archive
+                                </ConfirmButton>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="hidden gap-3 p-3 max-[680px]:grid">
+                  {testimonials.data.data.map((item) => (
+                    <article
+                      className="rounded-[0.7rem] border border-admin-border-soft bg-admin-surface p-4"
+                      key={item.id}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-[0.95rem]">{item.publicName}</h3>
+                          <p className="mt-1 text-[0.72rem] text-admin-ink-subtle">
+                            {[item.tripName, item.location]
+                              .filter(Boolean)
+                              .join(" - ") || "Traveller story"}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-[0.75rem] font-bold text-admin-brand">
+                          {item.rating} / 5
+                        </span>
+                      </div>
+                      <p className="my-3 line-clamp-3 text-[0.8rem] leading-relaxed text-admin-ink-muted">
+                        {item.quote}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <StatusBadge value={item.status} />
+                        {item.approved ? (
+                          <StatusBadge value="APPROVED" />
+                        ) : null}
+                        <span className="ml-auto text-[0.7rem] text-admin-ink-subtle">
+                          Order {item.sortOrder}
+                        </span>
+                      </div>
+                      <div className="mt-4 flex gap-2 [&>button]:min-h-9 [&>button]:flex-1">
+                        <Button
+                          variant="secondary"
+                          onClick={() => setTestimonial(item)}
+                        >
+                          Edit
+                        </Button>
+                        {item.status !== "ARCHIVED" ? (
+                          <ConfirmButton
+                            question="Archive this testimonial?"
+                            onClick={() =>
+                              void archive("testimonials", item.id)
+                            }
+                          >
+                            Archive
+                          </ConfirmButton>
+                        ) : null}
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </div>
             )}
           </Card>
           <Card>
-            <h2>{testimonial.id ? "Edit testimonial" : "Add testimonial"}</h2>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">
+                  {testimonial.id ? "Editing story" : "New story"}
+                </p>
+                <h2>{testimonial.id ? testimonial.publicName : "Add testimonial"}</h2>
+              </div>
+              {testimonial.id ? (
+                <Button
+                  variant="secondary"
+                  onClick={() => setTestimonial(blankTestimonial)}
+                >
+                  New
+                </Button>
+              ) : null}
+            </div>
             <div className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
                 Public name
                 <input
+                  maxLength={120}
+                  required
                   value={testimonial.publicName ?? ""}
                   onChange={(event) =>
                     setTestimonial((value) => ({
@@ -1193,9 +1293,41 @@ export function EngagementPage() {
                   }
                 />
               </label>
+              <div className="grid grid-cols-2 gap-3 max-[520px]:grid-cols-1">
+                <label>
+                  Location
+                  <input
+                    maxLength={120}
+                    placeholder="e.g. Mumbai"
+                    value={testimonial.location ?? ""}
+                    onChange={(event) =>
+                      setTestimonial((value) => ({
+                        ...value,
+                        location: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  Trip / package
+                  <input
+                    maxLength={160}
+                    placeholder="e.g. Kashmir escape"
+                    value={testimonial.tripName ?? ""}
+                    onChange={(event) =>
+                      setTestimonial((value) => ({
+                        ...value,
+                        tripName: event.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
               <label>
                 Quote
                 <textarea
+                  maxLength={5000}
+                  required
                   value={testimonial.quote ?? ""}
                   onChange={(event) =>
                     setTestimonial((value) => ({
@@ -1204,6 +1336,9 @@ export function EngagementPage() {
                     }))
                   }
                 />
+                <span className="text-right text-[0.68rem] font-normal text-admin-ink-subtle">
+                  {(testimonial.quote ?? "").length} / 5000
+                </span>
               </label>
               <label>
                 Consent evidence / notes
@@ -1217,22 +1352,70 @@ export function EngagementPage() {
                   }
                 />
               </label>
-              <label>
-                Status
-                <select
-                  value={testimonial.status}
-                  onChange={(event) =>
-                    setTestimonial((value) => ({
-                      ...value,
-                      status: event.target.value as PublicationStatus,
-                    }))
-                  }
-                >
-                  <option>DRAFT</option>
-                  <option>PUBLISHED</option>
-                  <option>ARCHIVED</option>
-                </select>
-              </label>
+              <div className="grid grid-cols-2 gap-3 max-[520px]:grid-cols-1">
+                <label>
+                  Rating
+                  <select
+                    value={testimonial.rating ?? 5}
+                    onChange={(event) =>
+                      setTestimonial((value) => ({
+                        ...value,
+                        rating: Number(event.target.value),
+                      }))
+                    }
+                  >
+                    <option value={5}>5 - Excellent</option>
+                    <option value={4}>4 - Very good</option>
+                    <option value={3}>3 - Good</option>
+                    <option value={2}>2 - Fair</option>
+                    <option value={1}>1 - Poor</option>
+                  </select>
+                </label>
+                <label>
+                  Display order
+                  <input
+                    min={0}
+                    max={10000}
+                    type="number"
+                    value={testimonial.sortOrder ?? 0}
+                    onChange={(event) =>
+                      setTestimonial((value) => ({
+                        ...value,
+                        sortOrder: Number(event.target.value),
+                      }))
+                    }
+                  />
+                </label>
+                <label>
+                  Status
+                  <select
+                    value={testimonial.status}
+                    onChange={(event) =>
+                      setTestimonial((value) => ({
+                        ...value,
+                        status: event.target.value as PublicationStatus,
+                      }))
+                    }
+                  >
+                    <option>DRAFT</option>
+                    <option>PUBLISHED</option>
+                    <option>ARCHIVED</option>
+                  </select>
+                </label>
+                <label>
+                  Publish date
+                  <input
+                    type="datetime-local"
+                    value={testimonial.publishedAt?.slice(0, 16) ?? ""}
+                    onChange={(event) =>
+                      setTestimonial((value) => ({
+                        ...value,
+                        publishedAt: event.target.value || null,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
               <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
                 <input
                   checked={Boolean(testimonial.approved)}
@@ -1246,12 +1429,37 @@ export function EngagementPage() {
                 />{" "}
                 Approved for public display
               </label>
-              <Button
-                disabled={saveTestimonial.isPending}
-                onClick={() => saveTestimonial.mutate()}
-              >
-                Save testimonial
-              </Button>
+              <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
+                <input
+                  checked={Boolean(testimonial.isDemo)}
+                  onChange={(event) =>
+                    setTestimonial((value) => ({
+                      ...value,
+                      isDemo: event.target.checked,
+                    }))
+                  }
+                  type="checkbox"
+                />{" "}
+                Demo content
+              </label>
+              <div className="flex flex-wrap gap-2 [&>button]:max-[520px]:w-full">
+                <Button
+                  disabled={
+                    saveTestimonial.isPending ||
+                    !testimonial.publicName?.trim() ||
+                    (testimonial.quote?.trim().length ?? 0) < 10
+                  }
+                  onClick={() => saveTestimonial.mutate()}
+                >
+                  {saveTestimonial.isPending ? "Saving..." : "Save testimonial"}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setTestimonial(blankTestimonial)}
+                >
+                  Clear
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
