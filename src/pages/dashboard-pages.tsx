@@ -1,4 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+  BellRing,
+  BookOpenText,
+  CalendarDays,
+  FileText,
+  Inbox,
+  type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest, type DataResponse } from "../api";
@@ -27,6 +35,33 @@ type Dashboard = {
   generatedAt: string;
 };
 
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  detail,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: number;
+  detail: string;
+}) {
+  return (
+    <article className="min-w-0 rounded-2xl border border-admin-border bg-admin-surface p-5 shadow-admin-card transition duration-200 hover:-translate-y-0.5 hover:border-admin-brand/20 hover:shadow-lg">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[0.76rem] font-black text-admin-ink-muted">{label}</span>
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-admin-brand-soft text-admin-brand">
+          <Icon size={19} strokeWidth={2} aria-hidden="true" />
+        </span>
+      </div>
+      <strong className="my-3 block text-[2.4rem] font-black leading-none tracking-[-0.045em] text-admin-brand-deep">
+        {value}
+      </strong>
+      <small className="block text-[0.74rem] leading-5 text-admin-ink-subtle">{detail}</small>
+    </article>
+  );
+}
+
 export function DashboardPage() {
   const { user } = useAuth();
   const query = useQuery({
@@ -46,34 +81,12 @@ export function DashboardPage() {
         <ErrorPanel error={query.error} retry={() => void query.refetch()} />
       ) : (
         <>
-          <div className="mb-4 grid grid-cols-4 gap-4 max-[1100px]:grid-cols-2 max-[680px]:grid-cols-1 [&_article]:grid [&_article]:rounded-[0.9rem] [&_article]:border [&_article]:border-admin-border [&_article]:bg-admin-surface [&_article]:p-5 [&_article]:shadow-admin-card [&_span]:text-[0.74rem] [&_span]:font-bold [&_span]:text-admin-ink-muted [&_strong]:my-1.5 [&_strong]:font-display [&_strong]:text-[2.55rem] [&_strong]:font-medium [&_strong]:text-admin-brand [&_small]:text-[0.7rem] [&_small]:text-admin-ink-subtle">
-            <article>
-              <span>All active packages</span>
-              <strong>{query.data.data.packages}</strong>
-              <small>
-                {query.data.data.publishedPackages} currently published
-              </small>
-            </article>
-            <article>
-              <span>New enquiries</span>
-              <strong>{query.data.data.newEnquiries}</strong>
-              <small>Awaiting first response</small>
-            </article>
-            <article>
-              <span>Upcoming departures</span>
-              <strong>{query.data.data.upcomingDepartures}</strong>
-              <small>Scheduled future request options</small>
-            </article>
-            <article>
-              <span>Published articles</span>
-              <strong>{query.data.data.publishedPosts}</strong>
-              <small>{query.data.data.draftPosts} drafts remain private</small>
-            </article>
-            <article>
-              <span>Failed notifications</span>
-              <strong>{query.data.data.failedNotifications}</strong>
-              <small>Review delivery and retry safely</small>
-            </article>
+          <div className="mb-5 grid grid-cols-5 gap-4 max-[1350px]:grid-cols-3 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
+            <MetricCard icon={BookOpenText} label="Active packages" value={query.data.data.packages} detail={`${query.data.data.publishedPackages} currently published`} />
+            <MetricCard icon={Inbox} label="New enquiries" value={query.data.data.newEnquiries} detail="Awaiting first response" />
+            <MetricCard icon={CalendarDays} label="Upcoming departures" value={query.data.data.upcomingDepartures} detail="Scheduled future options" />
+            <MetricCard icon={FileText} label="Published articles" value={query.data.data.publishedPosts} detail={`${query.data.data.draftPosts} drafts remain private`} />
+            <MetricCard icon={BellRing} label="Failed notifications" value={query.data.data.failedNotifications} detail="Review delivery and retry" />
           </div>
           <div className="grid grid-cols-[2fr_1fr] gap-4 max-[900px]:grid-cols-1">
             <Card>

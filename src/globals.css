@@ -1,42 +1,42 @@
 @import "tailwindcss";
 
 @theme {
-  /* Admin brand colors: edit these tokens to recolor the complete panel. */
-  --color-admin-canvas: #f4f1ea;
+  --color-admin-canvas: #f5f7f8;
   --color-admin-surface: #ffffff;
-  --color-admin-surface-muted: #eee7da;
-  --color-admin-brand: #0d3b38;
-  --color-admin-brand-deep: #082c2a;
-  --color-admin-brand-soft: #dcebe7;
-  --color-admin-accent: #b84d2e;
-  --color-admin-accent-hover: #963c23;
-  --color-admin-accent-soft: #f3e0d7;
-  --color-admin-ink: #1f2933;
-  --color-admin-ink-muted: #677079;
-  --color-admin-ink-subtle: #858d94;
-  --color-admin-border: #ded7cc;
-  --color-admin-border-soft: #ebe5dc;
-  --color-admin-focus: #d97a56;
-  --color-admin-positive: #237a57;
-  --color-admin-positive-soft: #e2f2e9;
-  --color-admin-negative: #a63d40;
-  --color-admin-negative-soft: #f8e3e3;
-  --color-admin-warning: #8a6116;
-  --color-admin-warning-soft: #f7edcf;
-  --color-admin-on-brand: #d8e9e5;
-  --color-admin-on-brand-muted: #9fbdb7;
-  --color-admin-on-brand-hover: #174b47;
-  --color-admin-overlay: rgb(4 20 19 / 0.72);
+  --color-admin-surface-muted: #f0f4f4;
+  --color-admin-brand: #155e59;
+  --color-admin-brand-deep: #0b302f;
+  --color-admin-brand-soft: #e4f2f0;
+  --color-admin-accent: #d75b32;
+  --color-admin-accent-light: #ffad8d;
+  --color-admin-accent-hover: #b84324;
+  --color-admin-accent-soft: #fff0e9;
+  --color-admin-ink: #172126;
+  --color-admin-ink-muted: #526168;
+  --color-admin-ink-subtle: #758087;
+  --color-admin-border: #dbe2e3;
+  --color-admin-border-soft: #edf1f1;
+  --color-admin-focus: #e16a43;
+  --color-admin-positive: #167451;
+  --color-admin-positive-soft: #e6f5ee;
+  --color-admin-negative: #b33b43;
+  --color-admin-negative-soft: #fdebec;
+  --color-admin-warning: #8b6416;
+  --color-admin-warning-soft: #fff5d8;
+  --color-admin-on-brand: #d6e7e5;
+  --color-admin-on-brand-muted: #8fb1ae;
+  --color-admin-on-brand-hover: #164442;
+  --color-admin-overlay: rgb(6 24 24 / 0.72);
 
   --font-sans:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
-  --font-display: Georgia, "Times New Roman", serif;
+    "Lato", "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui,
+    -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: "Lato", "Segoe UI Variable Display", ui-sans-serif, system-ui, sans-serif;
 
   --shadow-admin-card:
-    0 10px 28px -18px rgb(8 44 42 / 0.35),
-    0 2px 8px -4px rgb(8 44 42 / 0.12);
-  --shadow-admin-dialog: 0 24px 70px -20px rgb(4 20 19 / 0.48);
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 10px 32px -22px rgb(15 50 49 / 0.28);
+  --shadow-admin-dialog: 0 30px 80px -24px rgb(4 20 19 / 0.5);
 }
 
 :root {
@@ -50,14 +50,25 @@
 
   html {
     background: var(--color-admin-canvas);
+    text-rendering: optimizeLegibility;
   }
 
   body {
     margin: 0;
-    min-width: 20rem;
+    min-width: 0;
     background: var(--color-admin-canvas);
     color: var(--color-admin-ink);
     font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    letter-spacing: -0.025em;
   }
 
   button,
@@ -86,4 +97,154 @@
     background: var(--color-admin-accent);
     color: white;
   }
+
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 0.9375rem;
+  }
+
+  textarea {
+    line-height: 1.6;
+  }
+}
+
+@layer components {
+  .admin-form {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .admin-form label {
+    display: grid;
+    min-width: 0;
+    gap: 0.45rem;
+    color: var(--color-admin-brand-deep);
+    font-size: 0.8125rem;
+    font-weight: 700;
+  }
+
+  .admin-form input:not([type="checkbox"]):not([type="radio"]),
+  .admin-form select,
+  .admin-form textarea,
+  .admin-control {
+    width: 100%;
+    min-height: 2.875rem;
+    border: 1px solid var(--color-admin-border);
+    border-radius: 0.7rem;
+    background: var(--color-admin-surface);
+    padding: 0.7rem 0.8rem;
+    color: var(--color-admin-ink);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+
+  .admin-form input:hover,
+  .admin-form select:hover,
+  .admin-form textarea:hover,
+  .admin-control:hover {
+    border-color: color-mix(in srgb, var(--color-admin-brand) 35%, var(--color-admin-border));
+  }
+
+  .admin-form input:focus,
+  .admin-form select:focus,
+  .admin-form textarea:focus,
+  .admin-control:focus {
+    border-color: var(--color-admin-brand);
+    outline: none;
+    box-shadow: 0 0 0 3px var(--color-admin-brand-soft);
+  }
+
+  .admin-form-help {
+    color: var(--color-admin-ink-subtle);
+    font-size: 0.75rem;
+    font-weight: 400;
+  }
+
+  .admin-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .admin-table-wrap tbody tr {
+    transition: background-color 150ms ease;
+  }
+
+  .admin-table-wrap tbody tr:hover {
+    background: color-mix(in srgb, var(--color-admin-brand-soft) 45%, white);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* A single readable control and data rhythm across legacy and routed editors. */
+#root main form label {
+  min-width: 0;
+  color: var(--color-admin-brand-deep);
+  font-size: 0.825rem;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+}
+
+#root main input:not([type="checkbox"]):not([type="radio"]),
+#root main select,
+#root main textarea {
+  min-width: 0;
+  min-height: 2.875rem;
+  border-color: var(--color-admin-border);
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  color: var(--color-admin-ink);
+  font-size: 0.9rem;
+}
+
+#root main input:focus,
+#root main select:focus,
+#root main textarea:focus {
+  border-color: var(--color-admin-brand);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-admin-brand-soft);
+}
+
+#root main table {
+  font-size: 0.875rem;
+}
+
+#root main table th {
+  color: var(--color-admin-ink-muted);
+  font-size: 0.69rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+#root main table tbody tr {
+  transition: background-color 150ms ease;
+}
+
+#root main table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-admin-brand-soft) 45%, white);
+}
+
+#root main table td,
+#root main table th {
+  padding-block: 0.9rem;
+}
+
+#root main small {
+  line-height: 1.45;
 }

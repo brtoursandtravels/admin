@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ShieldCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import {
@@ -30,19 +31,36 @@ function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <main className="grid min-h-screen grid-cols-[minmax(18rem,0.85fr)_minmax(20rem,1.15fr)] bg-admin-canvas max-[680px]:grid-cols-1">
-      <section className="flex flex-col items-center justify-center bg-admin-brand-deep p-[clamp(2rem,7vw,6rem)] text-center text-admin-on-brand max-[680px]:hidden [&_img]:h-auto [&_img]:w-[min(100%,26rem)] [&_img]:max-w-[26rem] [&_img]:shadow-admin-dialog [&_p]:mt-6 [&_p]:max-w-96 [&_p]:leading-relaxed">
+    <main className="grid min-h-screen grid-cols-[minmax(22rem,0.9fr)_minmax(28rem,1.1fr)] bg-admin-canvas max-[800px]:grid-cols-1">
+      <section className="relative isolate flex min-h-screen flex-col justify-between overflow-hidden bg-admin-brand-deep p-[clamp(2rem,6vw,5rem)] text-admin-on-brand max-[800px]:hidden">
+        <span className="pointer-events-none absolute -top-48 -right-40 -z-10 size-[34rem] rounded-full border-[6rem] border-white/[0.035]" aria-hidden="true" />
+        <span className="pointer-events-none absolute -bottom-32 -left-24 -z-10 size-96 rounded-full bg-admin-accent/10 blur-3xl" aria-hidden="true" />
         <img
-          src={import.meta.env.BASE_URL + "br-logo.png"}
+          className="h-auto w-full max-w-[12rem] object-contain"
+          src={`${import.meta.env.BASE_URL}br-logo.png`}
           alt="BR Tours and Travels"
         />
-        <p>
-          Secure content and enquiry operations for authorised BR Tours staff.
+        <div className="max-w-[31rem]">
+          <p className="mb-4 flex items-center gap-2 text-[0.72rem] font-black uppercase tracking-[0.14em] text-admin-accent-light">
+            <Sparkles size={16} aria-hidden="true" /> Operations workspace
+          </p>
+          <h2 className="m-0 text-[clamp(2.4rem,5vw,4.25rem)] font-black leading-[1.04] tracking-[-0.045em] text-white">
+            Thoughtful travel, managed clearly.
+          </h2>
+          <p className="mt-6 max-w-[28rem] text-[1rem] leading-7 text-admin-on-brand">
+            One secure workspace for catalogue, editorial, enquiries and day-to-day website operations.
+          </p>
+        </div>
+        <p className="flex items-center gap-2 text-[0.78rem] font-bold text-admin-on-brand-muted">
+          <ShieldCheck size={17} aria-hidden="true" /> Protected staff access
         </p>
       </section>
-      <section className="flex items-center justify-center p-[clamp(1.5rem,6vw,5rem)]">
-        <div className="w-full max-w-[31rem] [&_h1]:m-0 [&_h1]:font-display [&_h1]:text-[clamp(2rem,4vw,3.2rem)] [&_h1]:font-medium [&_h1]:leading-tight [&_h1]:text-admin-brand-deep [&>p:not(:first-child)]:mt-4 [&>p:not(:first-child)]:leading-relaxed [&>p:not(:first-child)]:text-admin-ink-muted">
-          <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">{eyebrow}</p>
+      <section className="flex items-center justify-center p-[clamp(1.25rem,6vw,5rem)]">
+        <div className="w-full max-w-[32rem] rounded-3xl border border-admin-border bg-admin-surface p-[clamp(1.5rem,5vw,3rem)] shadow-admin-card [&_h1]:m-0 [&_h1]:text-[clamp(2rem,4vw,2.85rem)] [&_h1]:font-black [&_h1]:leading-tight [&_h1]:tracking-[-0.04em] [&_h1]:text-admin-brand-deep [&>p:not(:first-child)]:mt-4 [&>p:not(:first-child)]:leading-7 [&>p:not(:first-child)]:text-admin-ink-muted">
+          <div className="mb-8 flex items-center gap-3 min-[801px]:hidden">
+            <img className="h-auto w-full max-w-[10rem]" src={`${import.meta.env.BASE_URL}br-logo.png`} alt="BR Tours and Travels" />
+          </div>
+          <p className="mb-2 text-[0.68rem] font-black uppercase tracking-[0.15em] text-admin-accent">{eyebrow}</p>
           <h1>{title}</h1>
           <p>{description}</p>
           {children}

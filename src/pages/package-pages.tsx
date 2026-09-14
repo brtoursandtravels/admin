@@ -19,6 +19,7 @@ import {
 import { useAuth } from "../auth";
 import type { MediaAsset, PackageRecord, Taxonomy } from "../types";
 import {
+  ActionLink,
   Button,
   Card,
   ConfirmButton,
@@ -346,9 +347,9 @@ export function PackagesPage() {
         title="Tour packages"
         description="Search, edit, preview, publish and archive database-backed packages."
         actions={
-          <Link className="inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-[0.6rem] border border-transparent px-4 py-2.5 font-bold no-underline transition duration-150 active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 bg-admin-brand text-white hover:not-disabled:bg-admin-brand-deep" to="/packages/new">
+          <ActionLink to="/packages/new">
             Create package
-          </Link>
+          </ActionLink>
         }
       />
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[0.8rem] border border-admin-border bg-admin-surface p-3 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft [&_input]:min-w-48 [&_select]:min-w-48">
@@ -423,18 +424,18 @@ export function PackagesPage() {
                       </td>
                       <td>
                         <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
-                          <Link
-                            className="inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-[0.6rem] border border-transparent px-4 py-2.5 font-bold no-underline transition duration-150 active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 border-admin-border bg-admin-surface text-admin-brand hover:not-disabled:bg-admin-brand-soft"
+                          <ActionLink
+                            variant="secondary"
                             to={`/packages/${item.id}/edit`}
                           >
                             Edit
-                          </Link>
-                          <Link
-                            className="inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-[0.6rem] border border-transparent px-4 py-2.5 font-bold no-underline transition duration-150 active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 bg-transparent text-admin-brand hover:not-disabled:bg-admin-brand-soft"
+                          </ActionLink>
+                          <ActionLink
+                            variant="ghost"
                             to={`/packages/${item.id}/preview`}
                           >
                             Preview
-                          </Link>
+                          </ActionLink>
                           <Button
                             variant="ghost"
                             disabled={duplicate.isPending}
@@ -612,12 +613,12 @@ export function PackageEditorPage() {
               Back
             </Button>
             {editing ? (
-              <Link
-                className="inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-[0.6rem] border border-transparent px-4 py-2.5 font-bold no-underline transition duration-150 active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 border-admin-border bg-admin-surface text-admin-brand hover:not-disabled:bg-admin-brand-soft"
+              <ActionLink
+                variant="secondary"
                 to={`/packages/${id}/preview`}
               >
                 Protected preview
-              </Link>
+              </ActionLink>
             ) : null}
             <Button type="submit" disabled={save.isPending}>
               {save.isPending ? "Saving…" : "Save package"}

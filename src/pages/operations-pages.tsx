@@ -1,9 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest, type DataResponse, type PageResponse } from "../api";
 import { useAuth } from "../auth";
 import type { AdminUser, Role } from "../types";
 import {
+  ActionLink,
+  BackLink,
   Button,
   Card,
   EmptyState,
@@ -37,6 +40,10 @@ export function UsersPage() {
   const auth = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [draft, setDraft] = useState<UserDraft>(blankUser);
   const users = useQuery({
@@ -72,37 +79,47 @@ export function UsersPage() {
       setEditing(null);
       setDraft(blankUser);
       await client.invalidateQueries({ queryKey: ["admin-users"] });
+      navigate("/users");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
-  const edit = (user: AdminUser) => {
-    setEditing(user);
-    setDraft({
-      email: user.email,
-      displayName: user.displayName,
-      role: user.role,
-      status: user.status ?? "ACTIVE",
-      password: "",
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!id) {
+        setEditing(null);
+        setDraft(blankUser);
+        return;
+      }
+      const record = users.data?.data.find((user) => user.id === id);
+      if (!record) return;
+      setEditing(record);
+      setDraft({
+        email: record.email,
+        displayName: record.displayName,
+        role: record.role,
+        status: record.status ?? "ACTIVE",
+        password: "",
+      });
     });
-  };
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, id, users.data]);
   return (
     <>
       <PageHeader
         eyebrow="Super Admin"
-        title="Staff users and roles"
+        title={editorOpen ? (editing ? "Edit staff access" : "New staff user") : "Staff users and roles"}
         description="Create staff accounts, change role/status, and protect the last active Super Admin. Password hashes and sessions are never returned."
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              setDraft(blankUser);
-            }}
-          >
-            New staff user
-          </Button>
+          editorOpen ? (
+            <BackLink to="/users" />
+          ) : (
+            <ActionLink to="/users/new">New staff user</ActionLink>
+          )
         }
       />
-      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-3xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {users.isPending ? (
             <LoadingPanel />
@@ -144,7 +161,10 @@ export function UsersPage() {
                       </td>
                       <td>{formatDate(user.lastLoginAt)}</td>
                       <td>
-                        <Button variant="secondary" onClick={() => edit(user)}>
+                        <Button
+                          variant="secondary"
+                          onClick={() => navigate(`/users/${user.id}/edit`)}
+                        >
                           Edit
                         </Button>
                       </td>
@@ -155,6 +175,12 @@ export function UsersPage() {
             </div>
           )}
         </Card>
+        ) : null}
+        {editorOpen ? id && users.isError ? (
+          <ErrorPanel error={users.error} retry={() => void users.refetch()} />
+        ) : id && !editing ? (
+          <LoadingPanel label="Loading staff account…" />
+        ) : (
         <Card>
           <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">{editing ? "Edit access" : "New account"}</p>
           <h2>{editing?.displayName ?? "Create staff user"}</h2>
@@ -258,10 +284,7 @@ export function UsersPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => {
-                    setEditing(null);
-                    setDraft(blankUser);
-                  }}
+                  onClick={() => navigate("/users")}
                 >
                   Cancel
                 </Button>
@@ -269,6 +292,7 @@ export function UsersPage() {
             </div>
           </form>
         </Card>
+        ) : null}
       </div>
     </>
   );

@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/incompatible-library */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import {
   apiRequest,
@@ -14,6 +15,8 @@ import { useAuth } from "../auth";
 import { parseMenuLines } from "../lib/navigation";
 import type { MediaAsset, PackageRecord, PublicationStatus } from "../types";
 import {
+  ActionLink,
+  BackLink,
   Button,
   Card,
   ConfirmButton,
@@ -75,6 +78,10 @@ export function ContentPagesPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<ContentPage | null>(null);
   const form = useForm<PageForm>({
     resolver: zodResolver(pageSchema),
@@ -109,6 +116,7 @@ export function ContentPagesPage() {
       setEditing(null);
       form.reset(blankPage);
       await client.invalidateQueries({ queryKey: ["content-pages"] });
+      navigate("/content/pages");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -120,38 +128,47 @@ export function ContentPagesPage() {
       await client.invalidateQueries({ queryKey: ["content-pages"] });
     },
   });
-  const edit = (item: ContentPage) => {
-    setEditing(item);
-    form.reset({
-      slug: item.slug,
-      title: item.title,
-      contentHtml: item.contentHtml,
-      seoTitle: item.seoTitle ?? "",
-      seoDescription: item.seoDescription ?? "",
-      ownerReviewDue: item.ownerReviewDue,
-      status: item.status,
-      publishedAt: item.publishedAt?.slice(0, 16) ?? "",
-      isDemo: item.isDemo,
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!id) {
+        setEditing(null);
+        form.reset(blankPage);
+        return;
+      }
+      const record = pages.data?.data.find((item) => item.id === id);
+      if (!record) return;
+      setEditing(record);
+      form.reset({
+        slug: record.slug,
+        title: record.title,
+        contentHtml: record.contentHtml,
+        seoTitle: record.seoTitle ?? "",
+        seoDescription: record.seoDescription ?? "",
+        ownerReviewDue: record.ownerReviewDue,
+        status: record.status,
+        publishedAt: record.publishedAt?.slice(0, 16) ?? "",
+        isDemo: record.isDemo,
+      });
     });
-  };
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, form, id, pages.data]);
   return (
     <>
       <PageHeader
         eyebrow="Website content"
-        title="Pages and policies"
+        title={editorOpen ? (editing ? "Edit content page" : "New content page") : "Pages and policies"}
         description="Manage About, Contact, privacy, terms, cancellation and other sanitised content pages."
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              form.reset(blankPage);
-            }}
-          >
-            New page
-          </Button>
+          editorOpen ? (
+            <BackLink to="/content/pages" />
+          ) : (
+            <ActionLink to="/content/pages/new">New page</ActionLink>
+          )
         }
       />
-      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {pages.isPending ? (
             <LoadingPanel />
@@ -193,7 +210,7 @@ export function ContentPagesPage() {
                         <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
                           <Button
                             variant="secondary"
-                            onClick={() => edit(item)}
+                            onClick={() => navigate(`/content/pages/${item.id}/edit`)}
                           >
                             Edit
                           </Button>
@@ -214,6 +231,12 @@ export function ContentPagesPage() {
             </div>
           )}
         </Card>
+        ) : null}
+        {editorOpen ? id && pages.isError ? (
+          <ErrorPanel error={pages.error} retry={() => void pages.refetch()} />
+        ) : id && !editing ? (
+          <LoadingPanel label="Loading content page…" />
+        ) : (
         <Card>
           <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">{editing ? "Editing page" : "New page"}</p>
           <h2>{editing?.title ?? "Create page"}</h2>
@@ -280,10 +303,7 @@ export function ContentPagesPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => {
-                    setEditing(null);
-                    form.reset(blankPage);
-                  }}
+                  onClick={() => navigate("/content/pages")}
                 >
                   Cancel
                 </Button>
@@ -291,6 +311,7 @@ export function ContentPagesPage() {
             </div>
           </form>
         </Card>
+        ) : null}
       </div>
     </>
   );
@@ -346,6 +367,10 @@ export function HomepageSectionsPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<HomeSection | null>(null);
   const form = useForm<HomeForm>({
     resolver: zodResolver(homeSchema),
@@ -388,6 +413,7 @@ export function HomepageSectionsPage() {
       setEditing(null);
       form.reset(blankHome);
       await client.invalidateQueries({ queryKey: ["home-sections"] });
+      navigate("/content/home");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -402,37 +428,46 @@ export function HomepageSectionsPage() {
       await client.invalidateQueries({ queryKey: ["home-sections"] });
     },
   });
-  const edit = (item: HomeSection) => {
-    setEditing(item);
-    form.reset({
-      type: item.type,
-      title: item.title ?? "",
-      contentJson: JSON.stringify(item.content, null, 2),
-      isVisible: item.isVisible,
-      sortOrder: String(item.sortOrder),
-      status: item.status,
-      publishedAt: item.publishedAt?.slice(0, 16) ?? "",
-      isDemo: item.isDemo,
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!id) {
+        setEditing(null);
+        form.reset(blankHome);
+        return;
+      }
+      const record = sections.data?.data.find((item) => item.id === id);
+      if (!record) return;
+      setEditing(record);
+      form.reset({
+        type: record.type,
+        title: record.title ?? "",
+        contentJson: JSON.stringify(record.content, null, 2),
+        isVisible: record.isVisible,
+        sortOrder: String(record.sortOrder),
+        status: record.status,
+        publishedAt: record.publishedAt?.slice(0, 16) ?? "",
+        isDemo: record.isDemo,
+      });
     });
-  };
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, form, id, sections.data]);
   return (
     <>
       <PageHeader
         eyebrow="Homepage"
-        title="Finite homepage sections"
+        title={editorOpen ? (editing ? "Edit homepage section" : "New homepage section") : "Homepage sections"}
         description="Only supported section types can be configured; this is not an arbitrary-code page builder."
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              form.reset(blankHome);
-            }}
-          >
-            Add section
-          </Button>
+          editorOpen ? (
+            <BackLink to="/content/home" />
+          ) : (
+            <ActionLink to="/content/home/new">Add section</ActionLink>
+          )
         }
       />
-      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {sections.isPending ? (
             <LoadingPanel />
@@ -471,7 +506,7 @@ export function HomepageSectionsPage() {
                         <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
                           <Button
                             variant="secondary"
-                            onClick={() => edit(item)}
+                            onClick={() => navigate(`/content/home/${item.id}/edit`)}
                           >
                             Edit
                           </Button>
@@ -492,6 +527,12 @@ export function HomepageSectionsPage() {
             </div>
           )}
         </Card>
+        ) : null}
+        {editorOpen ? id && sections.isError ? (
+          <ErrorPanel error={sections.error} retry={() => void sections.refetch()} />
+        ) : id && !editing ? (
+          <LoadingPanel label="Loading homepage section…" />
+        ) : (
         <Card>
           <h2>{editing ? "Edit section" : "Add section"}</h2>
           <form
@@ -548,6 +589,7 @@ export function HomepageSectionsPage() {
             </Button>
           </form>
         </Card>
+        ) : null}
       </div>
     </>
   );
@@ -581,6 +623,10 @@ export function NavigationPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { key: routeKey } = useParams();
+  const editorOpen = Boolean(routeKey) || location.pathname.endsWith("/new");
   const [key, setKey] = useState("");
   const [label, setLabel] = useState("");
   const [itemsText, setItemsText] = useState("");
@@ -589,11 +635,6 @@ export function NavigationPage() {
     queryFn: () =>
       apiRequest<DataResponse<NavigationMenu[]>>("/admin/navigation"),
   });
-  const selectMenu = (menu: NavigationMenu) => {
-    setKey(menu.key);
-    setLabel(menu.label);
-    setItemsText(menuLines(menu));
-  };
   const save = useMutation({
     mutationFn: () =>
       apiRequest<DataResponse<NavigationMenu>>(
@@ -607,17 +648,43 @@ export function NavigationPage() {
     onSuccess: async () => {
       notify("Navigation hierarchy saved.");
       await client.invalidateQueries({ queryKey: ["navigation"] });
+      navigate("/content/navigation");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!routeKey) {
+        setKey("");
+        setLabel("");
+        setItemsText("");
+        return;
+      }
+      const record = menus.data?.data.find((menu) => menu.key === routeKey);
+      if (!record) return;
+      setKey(record.key);
+      setLabel(record.label);
+      setItemsText(menuLines(record));
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, menus.data, routeKey]);
   return (
     <>
       <PageHeader
         eyebrow="Website navigation"
-        title="Menus and footer links"
+        title={editorOpen ? (routeKey ? "Edit navigation menu" : "New navigation menu") : "Menus and footer links"}
         description="Safe relative, HTTPS, mailto and tel links are validated by the API. Navigation supports two levels."
+        actions={
+          editorOpen ? (
+            <BackLink to="/content/navigation" />
+          ) : (
+            <ActionLink to="/content/navigation/new">New menu</ActionLink>
+          )
+        }
       />
-      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card>
           <h2>Saved menus</h2>
           <div className="grid [&_a]:flex [&_a]:items-center [&_a]:justify-between [&_a]:border-t [&_a]:border-admin-border-soft [&_a]:py-4 [&_a]:font-bold [&_a]:no-underline [&_a:hover]:text-admin-accent [&_button]:flex [&_button]:items-center [&_button]:justify-between [&_button]:border-0 [&_button]:border-t [&_button]:border-admin-border-soft [&_button]:bg-transparent [&_button]:py-4 [&_button]:text-left [&_button]:font-bold [&_button]:text-admin-ink">
@@ -625,7 +692,7 @@ export function NavigationPage() {
               <button
                 className={menu.key === key ? "text-admin-accent!" : ""}
                 key={menu.id}
-                onClick={() => selectMenu(menu)}
+                onClick={() => navigate(`/content/navigation/${encodeURIComponent(menu.key)}/edit`)}
               >
                 {menu.label}
                 <span>{menu.items.length} links</span>
@@ -634,16 +701,19 @@ export function NavigationPage() {
           </div>
           <Button
             variant="secondary"
-            onClick={() => {
-              setKey("footer");
-              setLabel("Footer navigation");
-              setItemsText("");
-            }}
+            onClick={() => navigate("/content/navigation/new")}
           >
-            Configure footer menu
+            Create another menu
           </Button>
         </Card>
+        ) : null}
+        {editorOpen ? routeKey && menus.isError ? (
+          <ErrorPanel error={menus.error} retry={() => void menus.refetch()} />
+        ) : routeKey && !key ? (
+          <LoadingPanel label="Loading navigation menu…" />
+        ) : (
         <Card>
+          <h2>{routeKey ? "Edit menu structure" : "Create menu"}</h2>
           <form
             className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft"
             onSubmit={(event) => {
@@ -682,6 +752,7 @@ export function NavigationPage() {
             </Button>
           </form>
         </Card>
+        ) : null}
       </div>
     </>
   );
@@ -697,6 +768,10 @@ export function SettingsPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { key: routeKey } = useParams();
+  const editorOpen = Boolean(routeKey) || location.pathname.endsWith("/new");
   const [key, setKey] = useState("");
   const [value, setValue] = useState("{}");
   const [description, setDescription] = useState("");
@@ -727,23 +802,45 @@ export function SettingsPage() {
         "Setting saved. Secret-like keys remain blocked from public exposure.",
       );
       await client.invalidateQueries({ queryKey: ["settings"] });
+      navigate("/content/settings");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
-  const edit = (item: Setting) => {
-    setKey(item.key);
-    setValue(JSON.stringify(item.value, null, 2));
-    setDescription(item.description ?? "");
-    setIsPublic(item.isPublic);
-  };
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!routeKey) {
+        setKey("");
+        setValue("{}");
+        setDescription("");
+        setIsPublic(false);
+        return;
+      }
+      const record = settings.data?.data.find((item) => item.key === routeKey);
+      if (!record) return;
+      setKey(record.key);
+      setValue(JSON.stringify(record.value, null, 2));
+      setDescription(record.description ?? "");
+      setIsPublic(record.isPublic);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, routeKey, settings.data]);
   return (
     <>
       <PageHeader
         eyebrow="Configuration"
-        title="Public settings"
+        title={editorOpen ? (routeKey ? "Edit public setting" : "New public setting") : "Public settings"}
         description="Company contact, social, WhatsApp, SEO and other JSON settings. Secret-like keys cannot be public."
+        actions={
+          editorOpen ? (
+            <BackLink to="/content/settings" />
+          ) : (
+            <ActionLink to="/content/settings/new">New setting</ActionLink>
+          )
+        }
       />
-      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {settings.isPending ? (
             <LoadingPanel />
@@ -775,7 +872,10 @@ export function SettingsPage() {
                         />
                       </td>
                       <td>
-                        <Button variant="secondary" onClick={() => edit(item)}>
+                        <Button
+                          variant="secondary"
+                          onClick={() => navigate(`/content/settings/${encodeURIComponent(item.key)}/edit`)}
+                        >
                           Edit
                         </Button>
                       </td>
@@ -786,6 +886,12 @@ export function SettingsPage() {
             </div>
           )}
         </Card>
+        ) : null}
+        {editorOpen ? routeKey && settings.isError ? (
+          <ErrorPanel error={settings.error} retry={() => void settings.refetch()} />
+        ) : routeKey && !key ? (
+          <LoadingPanel label="Loading setting…" />
+        ) : (
         <Card>
           <h2>Set configuration value</h2>
           <form
@@ -831,6 +937,7 @@ export function SettingsPage() {
             </Button>
           </form>
         </Card>
+        ) : null}
       </div>
     </>
   );
@@ -877,7 +984,17 @@ export function EngagementPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
-  const [mode, setMode] = useState<"faqs" | "testimonials">("faqs");
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
+  const routeMode: "faqs" | "testimonials" = location.pathname.includes("/testimonials/")
+    ? "testimonials"
+    : "faqs";
+  const listMode: "faqs" | "testimonials" = new URLSearchParams(location.search).get("view") === "testimonials"
+    ? "testimonials"
+    : "faqs";
+  const activeMode = editorOpen ? routeMode : listMode;
   const [faq, setFaq] = useState<Partial<Faq>>({
     question: "",
     answer: "",
@@ -931,6 +1048,7 @@ export function EngagementPage() {
         packageId: null,
       });
       await client.invalidateQueries({ queryKey: ["faqs"] });
+      navigate("/content/engagement?view=faqs");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -964,6 +1082,7 @@ export function EngagementPage() {
       notify("Testimonial saved with approval and consent rules enforced.");
       setTestimonial(blankTestimonial);
       await client.invalidateQueries({ queryKey: ["testimonials"] });
+      navigate("/content/engagement?view=testimonials");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -975,37 +1094,79 @@ export function EngagementPage() {
     notify(`${resource === "faqs" ? "FAQ" : "Testimonial"} archived.`);
     await client.invalidateQueries({ queryKey: [resource] });
   };
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (routeMode === "faqs") {
+        const record = id
+          ? faqs.data?.data.find((item) => item.id === id)
+          : null;
+        setFaq(
+          record ?? {
+            question: "",
+            answer: "",
+            sortOrder: 0,
+            status: "DRAFT",
+            isDemo: false,
+            packageId: null,
+          },
+        );
+        return;
+      }
+      const record = id
+        ? testimonials.data?.data.find((item) => item.id === id)
+        : null;
+      setTestimonial(record ?? blankTestimonial);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, faqs.data, id, routeMode, testimonials.data]);
   return (
     <>
       <PageHeader
         eyebrow="Trust and answers"
-        title="FAQs and testimonials"
+        title={
+          editorOpen
+            ? `${id ? "Edit" : "New"} ${activeMode === "faqs" ? "FAQ" : "testimonial"}`
+            : "FAQs and testimonials"
+        }
         description="Package-specific FAQs are supported. Testimonials stay private until genuine consent is recorded and approval is explicit."
+        actions={
+          editorOpen ? (
+            <BackLink to={`/content/engagement?view=${activeMode}`} />
+          ) : (
+            <ActionLink to={`/content/engagement/${activeMode}/new`}>
+              Add {activeMode === "faqs" ? "FAQ" : "testimonial"}
+            </ActionLink>
+          )
+        }
       />
-      <div className="mb-3 flex gap-1.5 overflow-x-auto p-1 [&_button]:whitespace-nowrap [&_button]:rounded-full [&_button]:border [&_button]:border-admin-border [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-2 [&_button]:text-[0.72rem] [&_button]:font-bold [&_button]:text-admin-ink-muted">
+      {!editorOpen ? (
+      <div className="mb-5 inline-flex gap-1 rounded-xl border border-admin-border bg-admin-surface p-1 shadow-sm [&_button]:whitespace-nowrap [&_button]:rounded-lg [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-4 [&_button]:py-2.5 [&_button]:text-[0.78rem] [&_button]:font-black [&_button]:text-admin-ink-muted">
         <button
           className={
-            mode === "faqs"
+            activeMode === "faqs"
               ? "border-admin-brand! bg-admin-brand! text-white!"
               : ""
           }
-          onClick={() => setMode("faqs")}
+          onClick={() => navigate("/content/engagement?view=faqs")}
         >
           FAQs
         </button>
         <button
           className={
-            mode === "testimonials"
+            activeMode === "testimonials"
               ? "border-admin-brand! bg-admin-brand! text-white!"
               : ""
           }
-          onClick={() => setMode("testimonials")}
+          onClick={() => navigate("/content/engagement?view=testimonials")}
         >
           Testimonials
         </button>
       </div>
-      {mode === "faqs" ? (
-        <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      ) : null}
+      {activeMode === "faqs" ? (
+        <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+          {!editorOpen ? (
           <Card className="overflow-hidden p-0!">
             {faqs.isPending ? (
               <LoadingPanel />
@@ -1036,7 +1197,7 @@ export function EngagementPage() {
                           <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
                             <Button
                               variant="secondary"
-                              onClick={() => setFaq(item)}
+                              onClick={() => navigate(`/content/engagement/faqs/${item.id}/edit`)}
                             >
                               Edit
                             </Button>
@@ -1055,6 +1216,12 @@ export function EngagementPage() {
               </div>
             )}
           </Card>
+          ) : null}
+          {editorOpen ? id && faqs.isError ? (
+            <ErrorPanel error={faqs.error} retry={() => void faqs.refetch()} />
+          ) : id && !faq.id ? (
+            <LoadingPanel label="Loading FAQ…" />
+          ) : (
           <Card>
             <h2>{faq.id ? "Edit FAQ" : "Add FAQ"}</h2>
             <div className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
@@ -1125,9 +1292,11 @@ export function EngagementPage() {
               </Button>
             </div>
           </Card>
+          ) : null}
         </div>
       ) : (
-        <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+        <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+          {!editorOpen ? (
           <Card className="overflow-hidden p-0!">
             {testimonials.isPending ? (
               <LoadingPanel />
@@ -1185,7 +1354,7 @@ export function EngagementPage() {
                             <div className="flex flex-wrap items-center gap-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
                               <Button
                                 variant="secondary"
-                                onClick={() => setTestimonial(item)}
+                                onClick={() => navigate(`/content/engagement/testimonials/${item.id}/edit`)}
                               >
                                 Edit
                               </Button>
@@ -1240,7 +1409,7 @@ export function EngagementPage() {
                       <div className="mt-4 flex gap-2 [&>button]:min-h-9 [&>button]:flex-1">
                         <Button
                           variant="secondary"
-                          onClick={() => setTestimonial(item)}
+                          onClick={() => navigate(`/content/engagement/testimonials/${item.id}/edit`)}
                         >
                           Edit
                         </Button>
@@ -1261,6 +1430,12 @@ export function EngagementPage() {
               </div>
             )}
           </Card>
+          ) : null}
+          {editorOpen ? id && testimonials.isError ? (
+            <ErrorPanel error={testimonials.error} retry={() => void testimonials.refetch()} />
+          ) : id && !testimonial.id ? (
+            <LoadingPanel label="Loading testimonial…" />
+          ) : (
           <Card>
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1269,14 +1444,6 @@ export function EngagementPage() {
                 </p>
                 <h2>{testimonial.id ? testimonial.publicName : "Add testimonial"}</h2>
               </div>
-              {testimonial.id ? (
-                <Button
-                  variant="secondary"
-                  onClick={() => setTestimonial(blankTestimonial)}
-                >
-                  New
-                </Button>
-              ) : null}
             </div>
             <div className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
@@ -1455,13 +1622,14 @@ export function EngagementPage() {
                 </Button>
                 <Button
                   variant="secondary"
-                  onClick={() => setTestimonial(blankTestimonial)}
+                  onClick={() => navigate("/content/engagement?view=testimonials")}
                 >
                   Clear
                 </Button>
               </div>
             </div>
           </Card>
+          ) : null}
         </div>
       )}
     </>
@@ -1548,6 +1716,10 @@ export function BlogPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<BlogPost | null>(null);
   const [preview, setPreview] = useState<BlogPost | null>(null);
   const [categoryDraft, setCategoryDraft] = useState({ name: "", slug: "" });
@@ -1606,6 +1778,7 @@ export function BlogPage() {
       setEditing(result.data);
       form.reset({ ...form.getValues() });
       await client.invalidateQueries({ queryKey: ["blog-posts"] });
+      if (!editing) navigate(`/blog/${result.data.id}/edit`, { replace: true });
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -1635,32 +1808,43 @@ export function BlogPage() {
     notify(`${kind === "categories" ? "Category" : "Tag"} created.`);
     await client.invalidateQueries({ queryKey: [`blog-${kind}`] });
   };
-  const edit = (item: BlogPost) => {
-    setEditing(item);
-    form.reset({
-      slug: item.slug,
-      title: item.title,
-      excerpt: item.excerpt,
-      contentHtml: item.contentHtml,
-      categoryId: item.categoryId ?? "",
-      coverMediaId: item.coverMediaId ?? "",
-      publicAuthorName: item.publicAuthorName ?? "",
-      publicAuthorBio: item.publicAuthorBio ?? "",
-      seoTitle: item.seoTitle ?? "",
-      seoDescription: item.seoDescription ?? "",
-      tagIds: item.tags.map((relation) => relation.tag.id),
-      relatedPackageIds: item.relatedTours.map(
-        (relation) => relation.package.id,
-      ),
-      relatedPostIds: item.relatedArticles.map(
-        (relation) => relation.relatedPost.id,
-      ),
-      isFeatured: item.isFeatured,
-      status: item.status,
-      publishedAt: item.publishedAt?.slice(0, 16) ?? "",
-      isDemo: item.isDemo,
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!id) {
+        setEditing(null);
+        form.reset(blankBlog);
+        return;
+      }
+      const record = posts.data?.data.find((item) => item.id === id);
+      if (!record) return;
+      setEditing(record);
+      form.reset({
+        slug: record.slug,
+        title: record.title,
+        excerpt: record.excerpt,
+        contentHtml: record.contentHtml,
+        categoryId: record.categoryId ?? "",
+        coverMediaId: record.coverMediaId ?? "",
+        publicAuthorName: record.publicAuthorName ?? "",
+        publicAuthorBio: record.publicAuthorBio ?? "",
+        seoTitle: record.seoTitle ?? "",
+        seoDescription: record.seoDescription ?? "",
+        tagIds: record.tags.map((relation) => relation.tag.id),
+        relatedPackageIds: record.relatedTours.map(
+          (relation) => relation.package.id,
+        ),
+        relatedPostIds: record.relatedArticles.map(
+          (relation) => relation.relatedPost.id,
+        ),
+        isFeatured: record.isFeatured,
+        status: record.status,
+        publishedAt: record.publishedAt?.slice(0, 16) ?? "",
+        isDemo: record.isDemo,
+      });
     });
-  };
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, form, id, posts.data]);
   const multi = (
     field: "tagIds" | "relatedPackageIds" | "relatedPostIds",
     options: Array<{ id: string; label: string }>,
@@ -1693,20 +1877,18 @@ export function BlogPage() {
     <>
       <PageHeader
         eyebrow="Editorial"
-        title="Blog publishing"
+        title={editorOpen ? (editing ? "Edit article" : "New article") : "Blog publishing"}
         description="Drafts stay private. Stored HTML is sanitised by Express and reading time is calculated from content."
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              form.reset(blankBlog);
-            }}
-          >
-            New article
-          </Button>
+          editorOpen ? (
+            <BackLink to="/blog" />
+          ) : (
+            <ActionLink to="/blog/new">New article</ActionLink>
+          )
         }
       />
-      <div className="grid grid-cols-[minmax(20rem,0.75fr)_minmax(0,1.5fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-5xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {posts.isPending ? (
             <LoadingPanel />
@@ -1734,7 +1916,7 @@ export function BlogPage() {
                         <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
                           <Button
                             variant="secondary"
-                            onClick={() => edit(item)}
+                            onClick={() => navigate(`/blog/${item.id}/edit`)}
                           >
                             Edit
                           </Button>
@@ -1759,6 +1941,12 @@ export function BlogPage() {
             </div>
           )}
         </Card>
+        ) : null}
+        {editorOpen ? id && posts.isError ? (
+          <ErrorPanel error={posts.error} retry={() => void posts.refetch()} />
+        ) : id && !editing ? (
+          <LoadingPanel label="Loading article…" />
+        ) : (
         <Card className="min-w-0">
           <h2>{editing ? "Edit article" : "Create article"}</h2>
           <form
@@ -1965,6 +2153,7 @@ export function BlogPage() {
             </div>
           </div>
         </Card>
+        ) : null}
       </div>
       {preview ? (
         <div className="fixed inset-0 z-80 flex items-center justify-center bg-admin-overlay p-4">

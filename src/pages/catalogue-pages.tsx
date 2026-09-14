@@ -1,8 +1,9 @@
 /* eslint-disable react-hooks/incompatible-library */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import {
   apiRequest,
@@ -13,6 +14,8 @@ import {
 import { useAuth } from "../auth";
 import type { MediaAsset, PublicationStatus, Taxonomy } from "../types";
 import {
+  ActionLink,
+  BackLink,
   Button,
   Card,
   ConfirmButton,
@@ -64,6 +67,10 @@ function TaxonomyPage({
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<Taxonomy | null>(null);
   const form = useForm<TaxonomyForm>({
     resolver: zodResolver(taxonomySchema),
@@ -94,6 +101,7 @@ function TaxonomyPage({
       setEditing(null);
       form.reset(blankTaxonomy);
       await queryClient.invalidateQueries({ queryKey: [resource] });
+      navigate(`/${resource}`);
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -108,35 +116,44 @@ function TaxonomyPage({
       await queryClient.invalidateQueries({ queryKey: [resource] });
     },
   });
-  const beginEdit = (item: Taxonomy) => {
-    setEditing(item);
-    form.reset({
-      slug: item.slug,
-      name: item.name,
-      description: item.description ?? "",
-      status: item.status,
-      sortOrder: String(item.sortOrder),
-      isDemo: item.isDemo,
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!id) {
+        setEditing(null);
+        form.reset(blankTaxonomy);
+        return;
+      }
+      const record = query.data?.data.find((item) => item.id === id);
+      if (!record) return;
+      setEditing(record);
+      form.reset({
+        slug: record.slug,
+        name: record.name,
+        description: record.description ?? "",
+        status: record.status,
+        sortOrder: String(record.sortOrder),
+        isDemo: record.isDemo,
+      });
     });
-  };
+    return () => cancelAnimationFrame(frame);
+  }, [editorOpen, form, id, query.data]);
   return (
     <>
       <PageHeader
         eyebrow="Catalogue taxonomy"
-        title={title}
+        title={editorOpen ? (editing ? `Edit ${singular.toLowerCase()}` : `New ${singular.toLowerCase()}`) : title}
         description={`Manage labels, URL slugs, publication state and display order for ${title.toLowerCase()}.`}
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              form.reset(blankTaxonomy);
-            }}
-          >
-            New {singular.toLowerCase()}
-          </Button>
+          editorOpen ? (
+            <BackLink to={`/${resource}`} />
+          ) : (
+            <ActionLink to={`/${resource}/new`}>New {singular.toLowerCase()}</ActionLink>
+          )
         }
       />
-      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-3xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {query.isPending ? (
             <LoadingPanel />
@@ -179,7 +196,7 @@ function TaxonomyPage({
                         <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
                           <Button
                             variant="secondary"
-                            onClick={() => beginEdit(item)}
+                            onClick={() => navigate(`/${resource}/${item.id}/edit`)}
                           >
                             Edit
                           </Button>
@@ -200,6 +217,12 @@ function TaxonomyPage({
             </div>
           )}
         </Card>
+        ) : null}
+        {editorOpen ? id && query.isError ? (
+          <ErrorPanel error={query.error} retry={() => void query.refetch()} />
+        ) : id && !editing ? (
+          <LoadingPanel label={`Loading ${singular.toLowerCase()}…`} />
+        ) : (
         <Card>
           <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">{editing ? "Editing record" : "New record"}</p>
           <h2>{editing ? editing.name : `Create ${singular.toLowerCase()}`}</h2>
@@ -253,10 +276,7 @@ function TaxonomyPage({
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => {
-                    setEditing(null);
-                    form.reset(blankTaxonomy);
-                  }}
+                  onClick={() => navigate(`/${resource}`)}
                 >
                   Cancel
                 </Button>
@@ -264,6 +284,7 @@ function TaxonomyPage({
             </div>
           </form>
         </Card>
+        ) : null}
       </div>
     </>
   );
@@ -299,6 +320,11 @@ export function MediaLibraryPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const uploadOpen = location.pathname.endsWith("/new");
+  const editOpen = Boolean(id);
   const [page, setPage] = useState(1);
   const [visibility, setVisibility] = useState("");
   const [editing, setEditing] = useState<MediaAsset | null>(null);
@@ -320,6 +346,11 @@ export function MediaLibraryPage() {
       apiRequest<PageResponse<MediaAsset>>(
         `/admin/media?${new URLSearchParams({ page: String(page), pageSize: "20", ...(visibility ? { visibility } : {}) })}`,
       ),
+  });
+  const assetQuery = useQuery({
+    queryKey: ["media-asset", id],
+    queryFn: () => apiRequest<DataResponse<MediaAsset>>(`/admin/media/${id}`),
+    enabled: editOpen,
   });
   const upload = useMutation({
     mutationFn: () => {
@@ -346,6 +377,7 @@ export function MediaLibraryPage() {
         visibility: "PRIVATE",
       });
       await queryClient.invalidateQueries({ queryKey: ["media-library"] });
+      navigate("/media");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -365,6 +397,7 @@ export function MediaLibraryPage() {
       notify("Media metadata updated.");
       setEditing(null);
       await queryClient.invalidateQueries({ queryKey: ["media-library"] });
+      navigate("/media");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -377,23 +410,36 @@ export function MediaLibraryPage() {
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
-  const edit = (asset: MediaAsset) => {
-    setEditing(asset);
-    form.reset({
-      altText: asset.altText,
-      caption: asset.caption ?? "",
-      sourceNotes: asset.sourceNotes ?? "",
-      licenseNotes: asset.licenseNotes ?? "",
-      visibility: asset.visibility,
+  useEffect(() => {
+    const asset = assetQuery.data?.data;
+    if (!asset) return;
+    const frame = requestAnimationFrame(() => {
+      setEditing(asset);
+      form.reset({
+        altText: asset.altText,
+        caption: asset.caption ?? "",
+        sourceNotes: asset.sourceNotes ?? "",
+        licenseNotes: asset.licenseNotes ?? "",
+        visibility: asset.visibility,
+      });
     });
-  };
+    return () => cancelAnimationFrame(frame);
+  }, [assetQuery.data, form]);
   return (
     <>
       <PageHeader
         eyebrow="Assets"
-        title="Media library"
+        title={uploadOpen ? "Upload media" : editOpen ? "Edit media details" : "Media library"}
         description="Raster images are signature-checked, decoded, metadata-stripped and re-encoded. PDF brochures are signature-checked and served as downloads; SVG and active content are rejected."
+        actions={
+          uploadOpen || editOpen ? (
+            <BackLink to="/media" />
+          ) : (
+            <ActionLink to="/media/new">Upload media</ActionLink>
+          )
+        }
       />
+      {uploadOpen ? (
       <Card className="mb-4 [&>button]:mt-4">
         <h2>Upload image or brochure</h2>
         <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
@@ -482,6 +528,9 @@ export function MediaLibraryPage() {
           {upload.isPending ? "Processing…" : "Upload safely"}
         </Button>
       </Card>
+      ) : null}
+      {!uploadOpen && !editOpen ? (
+      <>
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[0.8rem] border border-admin-border bg-admin-surface p-3 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft [&_input]:min-w-48 [&_select]:min-w-48">
         <label>
           Visibility
@@ -535,7 +584,10 @@ export function MediaLibraryPage() {
                       : ""}
                   </p>
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <Button variant="secondary" onClick={() => edit(asset)}>
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigate(`/media/${asset.id}/edit`)}
+                    >
                       Edit
                     </Button>
                     <ConfirmButton
@@ -553,13 +605,17 @@ export function MediaLibraryPage() {
           <Pagination meta={query.data.meta} onPage={setPage} />
         </>
       )}
-      {editing ? (
-        <div className="fixed inset-0 z-80 flex items-center justify-center bg-admin-overlay p-4" role="presentation">
+      </>
+      ) : null}
+      {editOpen ? (
+        assetQuery.isError ? (
+          <ErrorPanel error={assetQuery.error} retry={() => void assetQuery.refetch()} />
+        ) : assetQuery.isPending || !editing ? (
+          <LoadingPanel label="Loading media details…" />
+        ) : (
+        <div className="max-w-4xl">
           <section
-            aria-labelledby="media-edit-title"
-            aria-modal="true"
-            className="max-h-[calc(100vh-2rem)] w-full max-w-[38rem] overflow-y-auto rounded-[0.9rem] bg-admin-surface p-[clamp(1.25rem,4vw,2rem)] shadow-admin-dialog"
-            role="dialog"
+            className="w-full rounded-2xl border border-admin-border bg-admin-surface p-[clamp(1.25rem,4vw,2rem)] shadow-admin-card"
           >
             <h2 id="media-edit-title">Edit media details</h2>
             <form
@@ -597,7 +653,7 @@ export function MediaLibraryPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => setEditing(null)}
+                  onClick={() => navigate("/media")}
                 >
                   Cancel
                 </Button>
@@ -605,6 +661,7 @@ export function MediaLibraryPage() {
             </form>
           </section>
         </div>
+        )
       ) : null}
     </>
   );
@@ -653,6 +710,10 @@ export function GalleryAlbumsPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { id } = useParams();
+  const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<GalleryAlbum | null>(null);
   const [mediaChoice, setMediaChoice] = useState("");
   const form = useForm<AlbumForm>({
@@ -698,6 +759,7 @@ export function GalleryAlbumsPage() {
       setEditing(null);
       form.reset(blankAlbum);
       await queryClient.invalidateQueries({ queryKey: ["gallery-albums"] });
+      navigate("/gallery");
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
@@ -717,45 +779,54 @@ export function GalleryAlbumsPage() {
     () => new Map(media.data?.data.map((item) => [item.id, item]) ?? []),
     [media.data],
   );
-  const beginEdit = (item: GalleryAlbum) => {
-    setEditing(item);
-    form.reset({
-      slug: item.slug,
-      title: item.title,
-      description: item.description ?? "",
-      destinationId: item.destinationId ?? "",
-      status: item.status,
-      publishedAt: item.publishedAt?.slice(0, 16) ?? "",
-      isDemo: item.isDemo,
-      mediaIds: [...item.images]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((image) => image.mediaAssetId),
-    });
-  };
   const move = (index: number, direction: -1 | 1) => {
     const next = [...selected];
     const target = index + direction;
     [next[index], next[target]] = [next[target]!, next[index]!];
     form.setValue("mediaIds", next, { shouldDirty: true });
   };
+  useEffect(() => {
+    if (!editorOpen) return;
+    const frame = requestAnimationFrame(() => {
+      if (!id) {
+        setEditing(null);
+        form.reset(blankAlbum);
+        return;
+      }
+      const record = albums.data?.data.find((item) => item.id === id);
+      if (!record) return;
+      setEditing(record);
+      form.reset({
+        slug: record.slug,
+        title: record.title,
+        description: record.description ?? "",
+        destinationId: record.destinationId ?? "",
+        status: record.status,
+        publishedAt: record.publishedAt?.slice(0, 16) ?? "",
+        isDemo: record.isDemo,
+        mediaIds: [...record.images]
+          .sort((a, b) => a.sortOrder - b.sortOrder)
+          .map((image) => image.mediaAssetId),
+      });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [albums.data, editorOpen, form, id]);
   return (
     <>
       <PageHeader
         eyebrow="Gallery"
-        title="Gallery albums"
+        title={editorOpen ? (editing ? "Edit gallery album" : "New gallery album") : "Gallery albums"}
         description="Create public or private albums, assign destinations, and control image order."
         actions={
-          <Button
-            onClick={() => {
-              setEditing(null);
-              form.reset(blankAlbum);
-            }}
-          >
-            New album
-          </Button>
+          editorOpen ? (
+            <BackLink to="/gallery" />
+          ) : (
+            <ActionLink to="/gallery/new">New album</ActionLink>
+          )
         }
       />
-      <div className="grid grid-cols-[minmax(0,1.55fr)_minmax(20rem,0.85fr)] items-start gap-4 max-[900px]:grid-cols-1">
+      <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {albums.isPending ? (
             <LoadingPanel />
@@ -795,7 +866,7 @@ export function GalleryAlbumsPage() {
                         <div className="flex flex-wrap items-center gap-1.5 [&>a]:min-h-8 [&>a]:px-2.5 [&>a]:py-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
                           <Button
                             variant="secondary"
-                            onClick={() => beginEdit(item)}
+                            onClick={() => navigate(`/gallery/${item.id}/edit`)}
                           >
                             Edit
                           </Button>
@@ -816,6 +887,12 @@ export function GalleryAlbumsPage() {
             </div>
           )}
         </Card>
+        ) : null}
+        {editorOpen ? id && albums.isError ? (
+          <ErrorPanel error={albums.error} retry={() => void albums.refetch()} />
+        ) : id && !editing ? (
+          <LoadingPanel label="Loading gallery album…" />
+        ) : (
         <Card>
           <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">{editing ? "Editing album" : "New album"}</p>
           <h2>{editing?.title ?? "Create gallery album"}</h2>
@@ -948,10 +1025,7 @@ export function GalleryAlbumsPage() {
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => {
-                    setEditing(null);
-                    form.reset(blankAlbum);
-                  }}
+                  onClick={() => navigate("/gallery")}
                 >
                   Cancel
                 </Button>
@@ -959,6 +1033,7 @@ export function GalleryAlbumsPage() {
             </div>
           </form>
         </Card>
+        ) : null}
       </div>
     </>
   );
