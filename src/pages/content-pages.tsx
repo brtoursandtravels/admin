@@ -2,6 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Search, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -24,6 +25,7 @@ import {
   ErrorPanel,
   LoadingPanel,
   PageHeader,
+  StickyActionBar,
   StatusBadge,
   getErrorMessage,
   useToast,
@@ -216,8 +218,11 @@ export function ContentPagesPage() {
                           </Button>
                           {item.status !== "ARCHIVED" ? (
                             <ConfirmButton
-                              question={`Archive ${item.title}?`}
-                              onClick={() => archive.mutate(item.id)}
+                              confirmText="Archive page"
+                              dialogDescription="This page will be removed from the public site and retained in archived records."
+                              dialogTitle="Archive page or policy?"
+                              detailText={item.title}
+                              onConfirm={() => archive.mutateAsync(item.id)}
                             >
                               Archive
                             </ConfirmButton>
@@ -265,10 +270,12 @@ export function ContentPagesPage() {
             <label>
               SEO title
               <input {...form.register("seoTitle")} />
+              <span className="text-right text-[0.68rem] font-normal text-admin-ink-subtle">{form.watch("seoTitle").length}/70 characters</span>
             </label>
             <label>
               SEO description
               <textarea rows={3} {...form.register("seoDescription")} />
+              <span className="text-right text-[0.68rem] font-normal text-admin-ink-subtle">{form.watch("seoDescription").length}/170 characters</span>
             </label>
             <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
@@ -295,20 +302,36 @@ export function ContentPagesPage() {
               <input type="checkbox" {...form.register("isDemo")} /> Demo
               content
             </label>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <Button disabled={save.isPending} type="submit">
-                Save page
-              </Button>
-              {editing ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => navigate("/content/pages")}
-                >
-                  Cancel
-                </Button>
+            <StickyActionBar dirty={form.formState.isDirty} saving={save.isPending}>
+              {form.formState.isDirty ? (
+                <ConfirmButton
+                  cancelText="Keep editing"
+                  confirmText="Discard changes"
+                  dialogDescription="All unsaved page copy, SEO and publishing edits will be reverted."
+                  dialogTitle="Discard page changes?"
+                  onConfirm={() =>
+                    form.reset(
+                      editing
+                        ? {
+                            slug: editing.slug,
+                            title: editing.title,
+                            contentHtml: editing.contentHtml,
+                            seoTitle: editing.seoTitle ?? "",
+                            seoDescription: editing.seoDescription ?? "",
+                            ownerReviewDue: editing.ownerReviewDue,
+                            status: editing.status,
+                            publishedAt: editing.publishedAt?.slice(0, 16) ?? "",
+                            isDemo: editing.isDemo,
+                          }
+                        : blankPage,
+                    )
+                  }
+                  tone="warning"
+                >Discard</ConfirmButton>
               ) : null}
-            </div>
+              <Button disabled={save.isPending} onClick={() => { form.setValue("status", "DRAFT", { shouldDirty: true }); void form.handleSubmit((value) => save.mutate(value))(); }} type="button" variant="secondary">Save as draft</Button>
+              <Button disabled={save.isPending || !form.formState.isDirty} type="submit">{form.watch("status") === "PUBLISHED" ? "Publish changes" : "Save page"}</Button>
+            </StickyActionBar>
           </form>
         </Card>
         ) : null}
@@ -512,8 +535,11 @@ export function HomepageSectionsPage() {
                           </Button>
                           {item.status !== "ARCHIVED" ? (
                             <ConfirmButton
-                              question="Archive and hide this section?"
-                              onClick={() => archive.mutate(item.id)}
+                              confirmText="Archive section"
+                              dialogDescription="This section will be hidden from the homepage after the change is saved by the API."
+                              dialogTitle="Archive homepage section?"
+                              detailText={item.title}
+                              onConfirm={() => archive.mutateAsync(item.id)}
                             >
                               Archive
                             </ConfirmButton>
@@ -780,6 +806,15 @@ export function SettingsPage() {
     queryKey: ["settings"],
     queryFn: () => apiRequest<DataResponse<Setting[]>>("/admin/settings"),
   });
+  const savedSetting = routeKey
+    ? settings.data?.data.find((item) => item.key === routeKey)
+    : undefined;
+  const settingsDirty = savedSetting
+    ? key !== savedSetting.key ||
+      value !== JSON.stringify(savedSetting.value, null, 2) ||
+      description !== (savedSetting.description ?? "") ||
+      isPublic !== savedSetting.isPublic
+    : Boolean(key || description || isPublic || value !== "{}");
   const save = useMutation({
     mutationFn: () => {
       let parsed: unknown;
@@ -932,9 +967,24 @@ export function SettingsPage() {
               />{" "}
               Expose through the public site settings API
             </label>
-            <Button disabled={!key || save.isPending} type="submit">
-              Save setting
-            </Button>
+            <StickyActionBar dirty={settingsDirty} saving={save.isPending}>
+              {settingsDirty ? (
+                <ConfirmButton
+                  cancelText="Keep editing"
+                  confirmText="Discard changes"
+                  dialogDescription="Revert the unsaved configuration value and exposure settings?"
+                  dialogTitle="Discard setting changes?"
+                  onConfirm={() => {
+                    setKey(savedSetting?.key ?? "");
+                    setValue(savedSetting ? JSON.stringify(savedSetting.value, null, 2) : "{}");
+                    setDescription(savedSetting?.description ?? "");
+                    setIsPublic(savedSetting?.isPublic ?? false);
+                  }}
+                  tone="warning"
+                >Discard</ConfirmButton>
+              ) : null}
+              <Button disabled={!key || save.isPending || !settingsDirty} type="submit">Save setting</Button>
+            </StickyActionBar>
           </form>
         </Card>
         ) : null}
@@ -1202,8 +1252,11 @@ export function EngagementPage() {
                               Edit
                             </Button>
                             <ConfirmButton
-                              question="Archive this FAQ?"
-                              onClick={() => void archive("faqs", item.id)}
+                              confirmText="Archive FAQ"
+                              dialogDescription="This answer will no longer appear on the public site."
+                              dialogTitle="Archive this FAQ?"
+                              detailText={item.question}
+                              onConfirm={() => archive("faqs", item.id)}
                             >
                               Archive
                             </ConfirmButton>
@@ -1360,9 +1413,12 @@ export function EngagementPage() {
                               </Button>
                               {item.status !== "ARCHIVED" ? (
                                 <ConfirmButton
-                                  question="Archive this testimonial?"
-                                  onClick={() =>
-                                    void archive("testimonials", item.id)
+                                  confirmText="Archive testimonial"
+                                  dialogDescription="This testimonial will be removed from public pages."
+                                  dialogTitle="Archive this testimonial?"
+                                  detailText={item.publicName}
+                                  onConfirm={() =>
+                                    archive("testimonials", item.id)
                                   }
                                 >
                                   Archive
@@ -1415,9 +1471,12 @@ export function EngagementPage() {
                         </Button>
                         {item.status !== "ARCHIVED" ? (
                           <ConfirmButton
-                            question="Archive this testimonial?"
-                            onClick={() =>
-                              void archive("testimonials", item.id)
+                            confirmText="Archive testimonial"
+                            dialogDescription="This testimonial will be removed from public pages."
+                            dialogTitle="Archive this testimonial?"
+                            detailText={item.publicName}
+                            onConfirm={() =>
+                              archive("testimonials", item.id)
                             }
                           >
                             Archive
@@ -1722,6 +1781,8 @@ export function BlogPage() {
   const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<BlogPost | null>(null);
   const [preview, setPreview] = useState<BlogPost | null>(null);
+  const [postQuery, setPostQuery] = useState("");
+  const [postStatus, setPostStatus] = useState("");
   const [categoryDraft, setCategoryDraft] = useState({ name: "", slug: "" });
   const [tagDraft, setTagDraft] = useState({ name: "", slug: "" });
   const form = useForm<BlogForm>({
@@ -1873,6 +1934,12 @@ export function BlogPage() {
   const cover = preview?.coverMediaId
     ? media.data?.data.find((item) => item.id === preview.coverMediaId)
     : null;
+  const visiblePosts = (posts.data?.data ?? []).filter((item) => {
+    const matchesQuery =
+      !postQuery ||
+      `${item.title} ${item.slug}`.toLowerCase().includes(postQuery.toLowerCase());
+    return matchesQuery && (!postStatus || item.status === postStatus);
+  });
   return (
     <>
       <PageHeader
@@ -1889,9 +1956,29 @@ export function BlogPage() {
       />
       <div className={editorOpen ? "max-w-5xl" : "grid items-start gap-4"}>
         {!editorOpen ? (
+        <div className="grid gap-3 rounded-2xl border border-admin-border bg-admin-surface p-3 shadow-admin-card">
+          <label className="grid gap-1.5 text-[0.79rem] font-bold text-admin-brand-deep">
+            Search articles
+            <span className="relative flex items-center">
+              <Search className="pointer-events-none absolute left-3 text-admin-ink-subtle" size={16} />
+              <input className="admin-control pl-9! pr-9!" onChange={(event) => setPostQuery(event.target.value)} placeholder="Title or URL slug" value={postQuery} />
+              {postQuery ? <button aria-label="Clear search" className="absolute right-2 inline-flex size-7 items-center justify-center rounded-lg border-0 bg-transparent text-admin-ink-subtle hover:bg-admin-surface-muted" onClick={() => setPostQuery("")} type="button"><X size={15} /></button> : null}
+            </span>
+          </label>
+          <div className="flex gap-2 overflow-x-auto border-t border-admin-border-soft pt-3">
+            {[{ label: "All", value: "" }, { label: "Published", value: "PUBLISHED" }, { label: "Drafts", value: "DRAFT" }, { label: "Archived", value: "ARCHIVED" }].map((filter) => {
+              const count = (posts.data?.data ?? []).filter((item) => !filter.value || item.status === filter.value).length;
+              return <button className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-[0.72rem] font-black transition ${postStatus === filter.value ? "border-admin-brand bg-admin-brand text-white" : "border-admin-border bg-white text-admin-ink-muted hover:bg-admin-brand-soft"}`} key={filter.value} onClick={() => setPostStatus(filter.value)} type="button">{filter.label} ({count})</button>;
+            })}
+          </div>
+        </div>
+        ) : null}
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {posts.isPending ? (
             <LoadingPanel />
+          ) : visiblePosts.length === 0 ? (
+            <EmptyState title="No articles match" description={postQuery || postStatus ? "Clear or change the filters to see more articles." : "Create the first article as a private draft."} action={!postQuery && !postStatus ? <ActionLink to="/blog/new">Create article</ActionLink> : undefined} />
           ) : (
             <div className="overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_th]:whitespace-nowrap [&_th]:bg-admin-surface-muted [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-[0.65rem] [&_th]:uppercase [&_th]:tracking-[0.08em] [&_th]:text-admin-ink-muted [&_td]:border-t [&_td]:border-admin-border-soft [&_td]:px-4 [&_td]:py-3.5 [&_td]:align-top [&_td]:text-[0.8rem] [&_td_small]:mt-1 [&_td_small]:block [&_td_small]:text-admin-ink-subtle">
               <table>
@@ -1903,7 +1990,7 @@ export function BlogPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {posts.data?.data.map((item) => (
+                  {visiblePosts.map((item) => (
                     <tr key={item.id}>
                       <td>
                         <span className="font-bold text-admin-brand-deep">{item.title}</span>
@@ -1927,8 +2014,11 @@ export function BlogPage() {
                             Preview
                           </Button>
                           <ConfirmButton
-                            question="Archive this article?"
-                            onClick={() => archive.mutate(item.id)}
+                            confirmText="Archive article"
+                            dialogDescription="This article will be removed from the public journal and kept as an archived record."
+                            dialogTitle="Archive blog article?"
+                            detailText={item.title}
+                            onConfirm={() => archive.mutateAsync(item.id)}
                           >
                             Archive
                           </ConfirmButton>

@@ -2,6 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { Search, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
@@ -74,6 +75,8 @@ function TaxonomyPage({
   const { id } = useParams();
   const editorOpen = Boolean(id) || location.pathname.endsWith("/new");
   const [editing, setEditing] = useState<Taxonomy | null>(null);
+  const [listQuery, setListQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const form = useForm<TaxonomyForm>({
     resolver: zodResolver(taxonomySchema),
     defaultValues: blankTaxonomy,
@@ -151,6 +154,12 @@ function TaxonomyPage({
     });
     return () => cancelAnimationFrame(frame);
   }, [editorOpen, form, id, query.data]);
+  const visibleItems = (query.data?.data ?? []).filter((item) => {
+    const matchesQuery =
+      !listQuery ||
+      `${item.name} ${item.slug}`.toLowerCase().includes(listQuery.toLowerCase());
+    return matchesQuery && (!statusFilter || item.status === statusFilter);
+  });
   return (
     <>
       <PageHeader
@@ -167,6 +176,24 @@ function TaxonomyPage({
       />
       <div className={editorOpen ? "max-w-3xl" : "grid items-start gap-4"}>
         {!editorOpen ? (
+        <div className="grid gap-3 rounded-2xl border border-admin-border bg-admin-surface p-3 shadow-admin-card">
+          <label className="grid gap-1.5 text-[0.79rem] font-bold text-admin-brand-deep">
+            Search {title.toLowerCase()}
+            <span className="relative flex items-center">
+              <Search className="pointer-events-none absolute left-3 text-admin-ink-subtle" size={16} />
+              <input className="admin-control pl-9! pr-9!" onChange={(event) => setListQuery(event.target.value)} placeholder="Name or URL slug" value={listQuery} />
+              {listQuery ? <button aria-label="Clear search" className="absolute right-2 inline-flex size-7 items-center justify-center rounded-lg border-0 bg-transparent text-admin-ink-subtle hover:bg-admin-surface-muted" onClick={() => setListQuery("")} type="button"><X size={15} /></button> : null}
+            </span>
+          </label>
+          <div className="flex gap-2 overflow-x-auto border-t border-admin-border-soft pt-3">
+            {[{ label: "All", value: "" }, { label: "Published", value: "PUBLISHED" }, { label: "Drafts", value: "DRAFT" }, { label: "Archived", value: "ARCHIVED" }].map((filter) => {
+              const count = (query.data?.data ?? []).filter((item) => !filter.value || item.status === filter.value).length;
+              return <button className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-[0.72rem] font-black transition ${statusFilter === filter.value ? "border-admin-brand bg-admin-brand text-white" : "border-admin-border bg-white text-admin-ink-muted hover:bg-admin-brand-soft"}`} key={filter.value} onClick={() => setStatusFilter(filter.value)} type="button">{filter.label} ({count})</button>;
+            })}
+          </div>
+        </div>
+        ) : null}
+        {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {query.isPending ? (
             <LoadingPanel />
@@ -175,10 +202,11 @@ function TaxonomyPage({
               error={query.error}
               retry={() => void query.refetch()}
             />
-          ) : query.data.data.length === 0 ? (
+          ) : visibleItems.length === 0 ? (
             <EmptyState
               title={`No ${title.toLowerCase()} yet`}
-              description={`Create the first ${singular.toLowerCase()} as a draft.`}
+              description={listQuery || statusFilter ? "Clear or change the filters to see more records." : `Create the first ${singular.toLowerCase()} as a draft.`}
+              action={!listQuery && !statusFilter ? <ActionLink to={`/${resource}/new`}>Create {singular.toLowerCase()}</ActionLink> : undefined}
             />
           ) : (
             <div className="overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_th]:whitespace-nowrap [&_th]:bg-admin-surface-muted [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-[0.65rem] [&_th]:uppercase [&_th]:tracking-[0.08em] [&_th]:text-admin-ink-muted [&_td]:border-t [&_td]:border-admin-border-soft [&_td]:px-4 [&_td]:py-3.5 [&_td]:align-top [&_td]:text-[0.8rem] [&_td_small]:mt-1 [&_td_small]:block [&_td_small]:text-admin-ink-subtle">
@@ -192,7 +220,7 @@ function TaxonomyPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {query.data.data.map((item) => (
+                  {visibleItems.map((item) => (
                     <tr key={item.id}>
                       <td>
                         <span className="font-bold text-admin-brand-deep">{item.name}</span>
@@ -215,8 +243,11 @@ function TaxonomyPage({
                           </Button>
                           {item.status !== "ARCHIVED" ? (
                             <ConfirmButton
-                              question={`Archive ${item.name}? Existing package relations remain protected.`}
-                              onClick={() => archive.mutate(item.id)}
+                              confirmText={`Archive ${singular.toLowerCase()}`}
+                              dialogDescription={`This ${singular.toLowerCase()} will no longer be available for new public content.`}
+                              dialogTitle={`Archive ${singular.toLowerCase()}?`}
+                              detailText={`${item.name} · Associated tour packages remain protected but may need an update.`}
+                              onConfirm={() => archive.mutateAsync(item.id)}
                             >
                               Archive
                             </ConfirmButton>
@@ -375,7 +406,9 @@ export function MediaLibraryPage() {
   const uploadOpen = location.pathname.endsWith("/new");
   const editOpen = Boolean(id);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const [visibility, setVisibility] = useState("");
+  const [mediaQuery, setMediaQuery] = useState("");
   const [editing, setEditing] = useState<MediaAsset | null>(null);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadFields, setUploadFields] = useState<MediaMetadata>({
@@ -390,10 +423,10 @@ export function MediaLibraryPage() {
     defaultValues: uploadFields,
   });
   const query = useQuery({
-    queryKey: ["media-library", page, visibility],
+    queryKey: ["media-library", page, pageSize, visibility],
     queryFn: () =>
       apiRequest<PageResponse<MediaAsset>>(
-        `/admin/media?${new URLSearchParams({ page: String(page), pageSize: "20", ...(visibility ? { visibility } : {}) })}`,
+        `/admin/media?${new URLSearchParams({ page: String(page), pageSize: String(pageSize), ...(visibility ? { visibility } : {}) })}`,
       ),
   });
   const assetQuery = useQuery({
@@ -474,6 +507,12 @@ export function MediaLibraryPage() {
     });
     return () => cancelAnimationFrame(frame);
   }, [assetQuery.data, form]);
+  const visibleAssets = (query.data?.data ?? []).filter((asset) =>
+    !mediaQuery ||
+    `${asset.altText} ${asset.originalName} ${asset.caption ?? ""}`
+      .toLowerCase()
+      .includes(mediaQuery.toLowerCase()),
+  );
   return (
     <>
       <PageHeader
@@ -581,6 +620,14 @@ export function MediaLibraryPage() {
       {!uploadOpen && !editOpen ? (
       <>
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[0.8rem] border border-admin-border bg-admin-surface p-3 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft [&_input]:min-w-48 [&_select]:min-w-48">
+        <label className="flex-1">
+          Search this page
+          <span className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-3 text-admin-ink-subtle" size={16} />
+            <input className="pl-9! pr-9!" onChange={(event) => setMediaQuery(event.target.value)} placeholder="Alt text, caption or filename" value={mediaQuery} />
+            {mediaQuery ? <button aria-label="Clear search" className="absolute right-2 inline-flex size-7 items-center justify-center rounded-lg border-0 bg-transparent text-admin-ink-subtle hover:bg-admin-surface-muted" onClick={() => setMediaQuery("")} type="button"><X size={15} /></button> : null}
+          </span>
+        </label>
         <label>
           Visibility
           <select
@@ -600,17 +647,18 @@ export function MediaLibraryPage() {
         <LoadingPanel />
       ) : query.isError ? (
         <ErrorPanel error={query.error} retry={() => void query.refetch()} />
-      ) : query.data.data.length === 0 ? (
+      ) : visibleAssets.length === 0 ? (
         <Card>
           <EmptyState
             title="No media assets"
-            description="Upload a licensed image or brochure with a meaningful accessible label."
+            description={mediaQuery ? "Clear the search to see more assets on this page." : "Upload a licensed image or brochure with a meaningful accessible label."}
+            action={!mediaQuery ? <ActionLink to="/media/new">Upload media</ActionLink> : undefined}
           />
         </Card>
       ) : (
         <>
           <div className="grid grid-cols-4 gap-4 max-[1100px]:grid-cols-3 max-[900px]:grid-cols-2 max-[680px]:grid-cols-1">
-            {query.data.data.map((asset) => (
+            {visibleAssets.map((asset) => (
               <article className="overflow-hidden rounded-[0.8rem] border border-admin-border bg-admin-surface shadow-admin-card [&>img]:aspect-[4/3] [&>img]:w-full [&>img]:bg-admin-surface-muted [&>img]:object-cover [&>div]:p-4 [&_h3]:mt-3 [&_h3]:mb-1.5 [&_h3]:font-sans [&_h3]:text-[0.9rem] [&_h3]:font-bold [&_p]:text-[0.68rem] [&_p]:text-admin-ink-muted" key={asset.id}>
                 {asset.mimeType.startsWith("image/") ? (
                   <img
@@ -640,9 +688,12 @@ export function MediaLibraryPage() {
                       Edit
                     </Button>
                     <ConfirmButton
-                      question="Delete this media asset? In-use assets are protected by the API."
+                      confirmText="Delete media permanently"
+                      dialogDescription="This file will be permanently removed from the media library. This cannot be undone."
+                      dialogTitle="Delete media asset?"
+                      detailText={`${asset.altText || asset.originalName} · In-use assets are protected by the API.`}
                       disabled={remove.isPending}
-                      onClick={() => remove.mutate(asset.id)}
+                      onConfirm={() => remove.mutateAsync(asset.id)}
                     >
                       Delete
                     </ConfirmButton>
@@ -651,7 +702,7 @@ export function MediaLibraryPage() {
               </article>
             ))}
           </div>
-          <Pagination meta={query.data.meta} onPage={setPage} />
+          <Pagination meta={query.data.meta} onPage={setPage} onPageSize={(next) => { setPageSize(next); setPage(1); }} />
         </>
       )}
       </>
@@ -921,8 +972,11 @@ export function GalleryAlbumsPage() {
                           </Button>
                           {item.status !== "ARCHIVED" ? (
                             <ConfirmButton
-                              question={`Archive ${item.title}?`}
-                              onClick={() => archive.mutate(item.id)}
+                              confirmText="Archive album"
+                              dialogDescription="The album will be hidden from the public gallery and retained as an archived record."
+                              dialogTitle="Archive gallery album?"
+                              detailText={item.title}
+                              onConfirm={() => archive.mutateAsync(item.id)}
                             >
                               Archive
                             </ConfirmButton>

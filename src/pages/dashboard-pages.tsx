@@ -5,6 +5,9 @@ import {
   CalendarDays,
   FileText,
   Inbox,
+  MapPinned,
+  Plus,
+  UploadCloud,
   type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -81,6 +84,22 @@ export function DashboardPage() {
         <ErrorPanel error={query.error} retry={() => void query.refetch()} />
       ) : (
         <>
+          <section className="mb-5 flex flex-wrap items-center justify-between gap-4 overflow-hidden rounded-2xl bg-admin-brand-deep px-5 py-4 text-white shadow-admin-elevated">
+            <div>
+              <p className="m-0 text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent-light">Quick create</p>
+              <strong className="mt-1 block text-base">Start the next task without leaving your flow.</strong>
+            </div>
+            <div className="flex flex-wrap gap-2 [&_a]:inline-flex [&_a]:min-h-10 [&_a]:items-center [&_a]:gap-2 [&_a]:rounded-xl [&_a]:bg-white/10 [&_a]:px-3.5 [&_a]:text-[0.76rem] [&_a]:font-black [&_a]:text-white [&_a]:no-underline [&_a]:transition [&_a:hover]:bg-white/18">
+              {user?.role !== "SALES_AGENT" ? (
+                <>
+                  <Link to="/packages/new"><Plus size={15} />New package</Link>
+                  <Link to="/destinations/new"><MapPinned size={15} />New destination</Link>
+                  <Link to="/media/new"><UploadCloud size={15} />Upload media</Link>
+                </>
+              ) : null}
+              {user?.role !== "CONTENT_EDITOR" ? <Link to="/enquiries"><Inbox size={15} />View new enquiries</Link> : null}
+            </div>
+          </section>
           <div className="mb-5 grid grid-cols-5 gap-4 max-[1350px]:grid-cols-3 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
             <MetricCard icon={BookOpenText} label="Active packages" value={query.data.data.packages} detail={`${query.data.data.publishedPackages} currently published`} />
             <MetricCard icon={Inbox} label="New enquiries" value={query.data.data.newEnquiries} detail="Awaiting first response" />
@@ -122,8 +141,8 @@ export function DashboardPage() {
               </div>
             </Card>
             <Card>
-              <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">Quick work</p>
-              <h2>Continue where attention is needed.</h2>
+              <p className="mb-[0.45rem] text-[0.66rem] font-black uppercase tracking-[0.14em] text-admin-accent">Activity queue</p>
+              <h2>What needs attention now.</h2>
               <div className="grid [&_a]:flex [&_a]:items-center [&_a]:justify-between [&_a]:border-t [&_a]:border-admin-border-soft [&_a]:py-4 [&_a]:font-bold [&_a]:no-underline [&_a:hover]:text-admin-accent [&_button]:flex [&_button]:items-center [&_button]:justify-between [&_button]:border-0 [&_button]:border-t [&_button]:border-admin-border-soft [&_button]:bg-transparent [&_button]:py-4 [&_button]:text-left [&_button]:font-bold [&_button]:text-admin-ink [&_button.active]:text-admin-accent">
                 {user?.role !== "SALES_AGENT" ? (
                   <Link to="/packages">

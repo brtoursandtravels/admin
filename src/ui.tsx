@@ -5,17 +5,24 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ButtonHTMLAttributes,
+  type MouseEventHandler,
   type ReactNode,
 } from "react";
 import {
   AlertCircle,
   ArrowLeft,
+  Check,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Inbox,
   LoaderCircle,
+  ShieldAlert,
+  TriangleAlert,
+  X,
 } from "lucide-react";
 import { Link, useBlocker, type LinkProps } from "react-router-dom";
 import { ApiError, type PageMeta } from "./api";
@@ -49,7 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       >
         {toasts.map((toast) => (
           <div
-            className={`rounded-[0.65rem] px-4 py-3.5 text-[0.78rem] text-white shadow-admin-dialog ${
+            className={`admin-toast rounded-[0.85rem] px-4 py-3.5 text-[0.78rem] font-bold text-white shadow-admin-dialog ${
               toast.tone === "success"
                 ? "bg-admin-positive"
                 : "bg-admin-negative"
@@ -70,13 +77,226 @@ export function useToast() {
   return value;
 }
 
+export type ConfirmationTone = "danger" | "warning" | "info";
+
+export type ConfirmationOptions = {
+  title: string;
+  message: string;
+  detailText?: string | null;
+  confirmText?: string;
+  cancelText?: string;
+  tone?: ConfirmationTone;
+  action?: () => unknown | Promise<unknown>;
+};
+
+type ConfirmationRequest = {
+  options: ConfirmationOptions;
+  resolve: (confirmed: boolean) => void;
+};
+
+const ConfirmationContext = createContext<{
+  confirm: (options: ConfirmationOptions) => Promise<boolean>;
+} | null>(null);
+
+function ConfirmationModal({
+  request,
+  onClose,
+}: {
+  request: ConfirmationRequest;
+  onClose: (confirmed: boolean) => void;
+}) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const [pending, setPending] = useState(false);
+  const [actionError, setActionError] = useState("");
+  const options = request.options;
+  const tone = options.tone ?? "danger";
+  const Icon = tone === "danger" ? ShieldAlert : tone === "warning" ? TriangleAlert : AlertCircle;
+  const toneClasses = {
+    danger: "bg-admin-negative-soft text-admin-negative",
+    warning: "bg-admin-warning-soft text-admin-warning",
+    info: "bg-admin-brand-soft text-admin-brand",
+  } as const;
+
+  const runConfirmation = useCallback(async () => {
+    if (pending) return;
+    setPending(true);
+    setActionError("");
+    try {
+      await options.action?.();
+      onClose(true);
+    } catch (error) {
+      setActionError(getErrorMessage(error));
+      setPending(false);
+    }
+  }, [onClose, options, pending]);
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !pending) {
+        event.preventDefault();
+        onClose(false);
+        return;
+      }
+      if (event.key === "Enter" && !pending) {
+        event.preventDefault();
+        void runConfirmation();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!focusable?.length) return;
+      const first = focusable[0]!;
+      const last = focusable[focusable.length - 1]!;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus();
+    };
+  }, [onClose, pending, runConfirmation]);
+
+  return (
+    <div
+      className="admin-dialog-backdrop fixed inset-0 z-[200] flex items-center justify-center bg-admin-overlay p-4 backdrop-blur-sm"
+      onMouseDown={(event) => {
+        if (event.currentTarget === event.target && !pending) onClose(false);
+      }}
+    >
+      <div
+        aria-describedby="confirmation-description"
+        aria-labelledby="confirmation-title"
+        aria-modal="true"
+        className="admin-dialog-panel w-full max-w-[31rem] overflow-hidden rounded-3xl border border-white/70 bg-admin-surface shadow-admin-dialog"
+        ref={dialogRef}
+        role="alertdialog"
+      >
+        <div className="flex items-start gap-4 p-6 pb-4 sm:p-7 sm:pb-5">
+          <span className={`flex size-12 shrink-0 items-center justify-center rounded-2xl ${toneClasses[tone]}`}>
+            <Icon size={23} strokeWidth={2.2} aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-4">
+              <h2 className="m-0 text-xl font-black tracking-[-0.025em] text-admin-brand-deep" id="confirmation-title">
+                {options.title}
+              </h2>
+              <button
+                aria-label="Close confirmation"
+                className="-mt-1 inline-flex size-9 shrink-0 items-center justify-center rounded-xl border-0 bg-transparent text-admin-ink-subtle transition hover:bg-admin-surface-muted hover:text-admin-ink"
+                disabled={pending}
+                onClick={() => onClose(false)}
+                type="button"
+              >
+                <X size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <p className="mt-2 mb-0 text-[0.92rem] leading-6 text-admin-ink-muted" id="confirmation-description">
+              {options.message}
+            </p>
+            {options.detailText ? (
+              <p className="mt-3 mb-0 rounded-xl bg-admin-surface-muted px-3.5 py-3 text-[0.78rem] font-bold leading-5 text-admin-ink">
+                {options.detailText}
+              </p>
+            ) : null}
+            {actionError ? (
+              <p className="mt-3 mb-0 rounded-xl bg-admin-negative-soft px-3.5 py-3 text-[0.78rem] font-bold text-admin-negative" role="alert">
+                {actionError}
+              </p>
+            ) : null}
+          </div>
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-admin-border-soft bg-admin-surface-muted/55 px-6 py-4 sm:flex-row sm:justify-end sm:px-7">
+          <Button disabled={pending} onClick={() => onClose(false)} type="button" variant="secondary">
+            {options.cancelText ?? "Cancel"}
+          </Button>
+          <Button
+            autoFocus
+            className={tone === "danger" ? "bg-admin-negative hover:not-disabled:bg-[#922f38]" : tone === "warning" ? "bg-admin-warning hover:not-disabled:brightness-90" : ""}
+            disabled={pending}
+            onClick={() => void runConfirmation()}
+            type="button"
+          >
+            {pending ? <LoaderCircle className="animate-spin" size={17} aria-hidden="true" /> : null}
+            {pending ? "Working…" : options.confirmText ?? "Confirm"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ConfirmationProvider({ children }: { children: ReactNode }) {
+  const [request, setRequest] = useState<ConfirmationRequest | null>(null);
+  const confirm = useCallback((options: ConfirmationOptions) => {
+    return new Promise<boolean>((resolve) => {
+      setRequest((current) => {
+        current?.resolve(false);
+        return { options, resolve };
+      });
+    });
+  }, []);
+  const close = useCallback((confirmed: boolean) => {
+    setRequest((current) => {
+      current?.resolve(confirmed);
+      return null;
+    });
+  }, []);
+  const value = useMemo(() => ({ confirm }), [confirm]);
+
+  useEffect(() => {
+    if (!request) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [request]);
+
+  return (
+    <ConfirmationContext.Provider value={value}>
+      {children}
+      {request ? <ConfirmationModal request={request} onClose={close} /> : null}
+    </ConfirmationContext.Provider>
+  );
+}
+
+export function useConfirm() {
+  const value = useContext(ConfirmationContext);
+  if (!value)
+    throw new Error("useConfirm must be used inside ConfirmationProvider.");
+  return value.confirm;
+}
+
 export function useUnsavedChanges(isDirty: boolean) {
   const blocker = useBlocker(isDirty);
+  const confirm = useConfirm();
+  const prompting = useRef(false);
   useEffect(() => {
-    if (blocker.state !== "blocked") return;
-    if (window.confirm("Discard your unsaved changes?")) blocker.proceed();
-    else blocker.reset();
-  }, [blocker]);
+    if (blocker.state !== "blocked" || prompting.current) return;
+    prompting.current = true;
+    void confirm({
+      title: "Discard unsaved changes?",
+      message:
+        "You have edits that have not been saved. Leaving this page will permanently discard them.",
+      detailText: "Stay here to keep editing, or discard the changes and continue.",
+      confirmText: "Discard changes",
+      cancelText: "Keep editing",
+      tone: "warning",
+    }).then((confirmed) => {
+      prompting.current = false;
+      if (confirmed) blocker.proceed();
+      else blocker.reset();
+    });
+  }, [blocker, confirm]);
   useEffect(() => {
     const warn = (event: BeforeUnloadEvent) => {
       if (!isDirty) return;
@@ -197,11 +417,13 @@ export function Card({
 }
 
 export function StatusBadge({ value }: { value: string }) {
-  const tone = ["PUBLISHED", "ACTIVE", "SENT", "CONFIRMED"].includes(value)
+  const tone = ["PUBLISHED", "ACTIVE", "SENT", "CONFIRMED", "COMPLETED"].includes(value)
     ? "bg-admin-positive-soft text-admin-positive"
     : ["FAILED", "DISABLED", "LOST", "ARCHIVED", "CANCELLED"].includes(value)
       ? "bg-admin-negative-soft text-admin-negative"
-      : "bg-admin-warning-soft text-admin-warning";
+      : ["NEW", "DRAFT", "PENDING", "QUEUED", "SCHEDULED"].includes(value)
+        ? "bg-admin-warning-soft text-admin-warning"
+        : "bg-admin-brand-soft text-admin-brand";
   return (
     <span
       className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[0.66rem] font-black uppercase tracking-[0.055em] ${tone}`}
@@ -218,16 +440,37 @@ export function LoadingPanel({
 }) {
   return (
     <div
-      className="flex min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed border-admin-border bg-admin-surface/70 p-8 text-center text-[0.9rem] font-bold text-admin-ink-muted"
+      aria-label={label}
+      className="min-h-56 overflow-hidden rounded-2xl border border-admin-border bg-admin-surface p-5"
       role="status"
     >
-      <LoaderCircle
-        className="mb-3 animate-spin text-admin-brand"
-        size={27}
-        aria-hidden="true"
-      />
-      {label}
+      <span className="sr-only">{label}</span>
+      <div className="mb-5 flex items-center gap-3">
+        <Skeleton className="size-10 rounded-xl" />
+        <div className="grid flex-1 gap-2">
+          <Skeleton className="h-3.5 w-40" />
+          <Skeleton className="h-2.5 w-64 max-w-full" />
+        </div>
+      </div>
+      <div className="grid gap-3">
+        {Array.from({ length: 5 }, (_, index) => (
+          <div className="grid grid-cols-[2fr_1fr_1fr] gap-4 border-t border-admin-border-soft pt-3" key={index}>
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-full" />
+          </div>
+        ))}
+      </div>
     </div>
+  );
+}
+
+export function Skeleton({ className = "" }: { className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`admin-skeleton block rounded-lg bg-admin-surface-muted ${className}`}
+    />
   );
 }
 
@@ -283,9 +526,11 @@ export function EmptyState({
 export function Pagination({
   meta,
   onPage,
+  onPageSize,
 }: {
   meta: PageMeta;
   onPage: (page: number) => void;
+  onPageSize?: (pageSize: number) => void;
 }) {
   const pages = Math.max(1, Math.ceil(meta.total / meta.pageSize));
   return (
@@ -293,9 +538,26 @@ export function Pagination({
       className="flex items-center justify-between border-t border-admin-border-soft px-4 py-4 text-[0.78rem] font-bold text-admin-ink-muted max-[680px]:flex-col max-[680px]:items-start max-[680px]:gap-3"
       aria-label="Pagination"
     >
-      <span>
-        Page {meta.page} of {pages} · {meta.total} records
-      </span>
+      <div className="flex flex-wrap items-center gap-3">
+        <span>
+          Page {meta.page} of {pages} · {meta.total} records
+        </span>
+        {onPageSize ? (
+          <label className="flex items-center gap-2 text-[0.72rem]">
+            Rows
+            <select
+              aria-label="Rows per page"
+              className="min-h-9 rounded-lg border border-admin-border bg-admin-surface px-2 text-admin-ink"
+              onChange={(event) => onPageSize(Number(event.target.value))}
+              value={meta.pageSize}
+            >
+              {[10, 25, 50, 100].map((size) => (
+                <option key={size}>{size}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+      </div>
       <div className="flex items-center gap-1.5">
         <Button
           variant="secondary"
@@ -328,20 +590,101 @@ export function FieldError({ message }: { message?: string }) {
 
 export function ConfirmButton({
   question,
+  dialogTitle,
+  dialogDescription,
+  detailText,
+  confirmText,
+  cancelText,
+  tone = "danger",
+  onConfirm,
+  onClick,
   children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { question: string }) {
+}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> & {
+  question?: string;
+  dialogTitle?: string;
+  dialogDescription?: string;
+  detailText?: string | null;
+  confirmText?: string;
+  cancelText?: string;
+  tone?: ConfirmationTone;
+  onConfirm?: () => unknown | Promise<unknown>;
+  onClick?: MouseEventHandler<HTMLButtonElement>;
+}) {
+  const confirm = useConfirm();
   return (
     <Button
-      variant="danger"
       {...props}
+      type={props.type ?? "button"}
+      variant={tone === "danger" ? "danger" : "secondary"}
       onClick={(event) => {
-        if (!window.confirm(question)) return;
-        props.onClick?.(event);
+        void confirm({
+          title:
+            dialogTitle ??
+            (tone === "danger"
+              ? "Confirm destructive action"
+              : "Confirm this change"),
+          message:
+            dialogDescription ??
+            question ??
+            "Are you sure you want to continue?",
+          detailText,
+          confirmText:
+            confirmText ??
+            (tone === "danger" ? "Confirm permanently" : "Continue"),
+          cancelText,
+          tone,
+          action: async () => {
+            await onConfirm?.();
+            await Promise.resolve(onClick?.(event));
+          },
+        });
       }}
     >
       {children}
     </Button>
+  );
+}
+
+export function StickyActionBar({
+  dirty,
+  saving = false,
+  children,
+}: {
+  dirty: boolean;
+  saving?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="sticky bottom-4 z-20 mx-auto mt-5 flex w-full max-w-[48rem] flex-wrap items-center justify-between gap-3 rounded-2xl border border-admin-border/90 bg-admin-surface/95 px-4 py-3 shadow-admin-dialog backdrop-blur-xl">
+      <span className="inline-flex items-center gap-2 text-[0.76rem] font-black text-admin-ink-muted">
+        <span
+          className={`flex size-7 items-center justify-center rounded-full ${dirty ? "bg-admin-warning-soft text-admin-warning" : "bg-admin-positive-soft text-admin-positive"}`}
+        >
+          {saving ? (
+            <LoaderCircle className="animate-spin" size={14} aria-hidden="true" />
+          ) : dirty ? (
+            <span className="size-2 rounded-full bg-current" />
+          ) : (
+            <Check size={14} aria-hidden="true" />
+          )}
+        </span>
+        {saving
+          ? "Saving changes…"
+          : dirty
+            ? "Unsaved changes"
+            : "All changes saved"}
+      </span>
+      <div className="flex flex-wrap items-center justify-end gap-2">{children}</div>
+    </div>
+  );
+}
+
+export function SavedIndicator() {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-bold text-admin-positive">
+      <CheckCircle2 size={15} aria-hidden="true" /> Saved
+    </span>
   );
 }
 

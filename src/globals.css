@@ -1,15 +1,15 @@
 @import "tailwindcss";
 
 @theme {
-  --color-admin-canvas: #f5f7f8;
+  --color-admin-canvas: #f4f7f6;
   --color-admin-surface: #ffffff;
   --color-admin-surface-muted: #f0f4f4;
-  --color-admin-brand: #155e59;
-  --color-admin-brand-deep: #0b302f;
-  --color-admin-brand-soft: #e4f2f0;
-  --color-admin-accent: #d75b32;
+  --color-admin-brand: #166560;
+  --color-admin-brand-deep: #0c2423;
+  --color-admin-brand-soft: #e3f2f0;
+  --color-admin-accent: #ea580c;
   --color-admin-accent-light: #ffad8d;
-  --color-admin-accent-hover: #b84324;
+  --color-admin-accent-hover: #c2410c;
   --color-admin-accent-soft: #fff0e9;
   --color-admin-ink: #172126;
   --color-admin-ink-muted: #526168;
@@ -36,6 +36,8 @@
   --shadow-admin-card:
     0 1px 2px rgb(15 23 42 / 0.04),
     0 10px 32px -22px rgb(15 50 49 / 0.28);
+  --shadow-admin-subtle: 0 1px 3px rgb(15 36 35 / 0.08);
+  --shadow-admin-elevated: 0 24px 60px -32px rgb(12 36 35 / 0.36);
   --shadow-admin-dialog: 0 30px 80px -24px rgb(4 20 19 / 0.5);
 }
 
@@ -50,6 +52,7 @@
 
   html {
     background: var(--color-admin-canvas);
+    scroll-behavior: smooth;
     text-rendering: optimizeLegibility;
   }
 
@@ -113,6 +116,11 @@
 
   textarea {
     line-height: 1.6;
+  }
+
+  * {
+    scrollbar-color: color-mix(in srgb, var(--color-admin-brand) 32%, transparent) transparent;
+    scrollbar-width: thin;
   }
 }
 
@@ -179,6 +187,70 @@
   .admin-table-wrap tbody tr:hover {
     background: color-mix(in srgb, var(--color-admin-brand-soft) 45%, white);
   }
+
+  .admin-dialog-backdrop {
+    animation: admin-backdrop-in 180ms ease-out both;
+  }
+
+  .admin-dialog-panel {
+    animation: admin-dialog-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .admin-skeleton {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .admin-skeleton::after {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.86), transparent);
+    content: "";
+    transform: translateX(-100%);
+    animation: admin-shimmer 1.45s infinite;
+  }
+
+  .admin-tab-panel {
+    animation: admin-tab-in 180ms ease-out both;
+  }
+
+  .admin-popover {
+    animation: admin-popover-in 140ms ease-out both;
+    box-shadow: var(--shadow-admin-elevated);
+  }
+
+  .admin-toast {
+    animation: admin-toast-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes admin-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes admin-dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes admin-popover-in {
+  from { opacity: 0; transform: translateY(-5px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes admin-shimmer {
+  100% { transform: translateX(100%); }
+}
+
+@keyframes admin-tab-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes admin-toast-in {
+  from { opacity: 0; transform: translateX(18px) scale(0.98); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

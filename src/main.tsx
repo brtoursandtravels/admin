@@ -19,7 +19,7 @@ import {
   ProfilePage,
 } from "./pages/dashboard-pages";
 import { AppShell } from "./shell";
-import { ToastProvider } from "./ui";
+import { ConfirmationProvider, ToastProvider } from "./ui";
 import "./globals.css";
 
 const PackagesPage = lazy(() =>
@@ -210,15 +210,17 @@ createRoot(document.getElementById("root")!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <ToastProvider>
-          <Suspense
-            fallback={
-              <div className="flex min-h-screen items-center justify-center bg-admin-canvas font-bold text-admin-brand" role="status">
-                Loading admin module…
-              </div>
-            }
-          >
-            <RouterProvider router={router} />
-          </Suspense>
+          <ConfirmationProvider>
+            <Suspense
+              fallback={
+                <div className="flex min-h-screen items-center justify-center bg-admin-canvas font-bold text-admin-brand" role="status">
+                  Loading admin module…
+                </div>
+              }
+            >
+              <RouterProvider router={router} />
+            </Suspense>
+          </ConfirmationProvider>
         </ToastProvider>
       </AuthProvider>
     </QueryClientProvider>

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Mail, MessageCircle, Phone, Search, X } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
@@ -12,6 +13,7 @@ import type { Role } from "../types";
 import {
   Button,
   Card,
+  ConfirmButton,
   EmptyState,
   ErrorPanel,
   LoadingPanel,
@@ -84,6 +86,13 @@ const transitions: Record<EnquiryStatus, EnquiryStatus[]> = {
   CLOSED: [],
   LOST: ["CONTACTED"],
 };
+const workflowStages: EnquiryStatus[] = [
+  "NEW",
+  "CONTACTED",
+  "QUOTED",
+  "CONFIRMED",
+  "CLOSED",
+];
 
 export function EnquiriesPage() {
   const { notify } = useToast();
@@ -95,11 +104,12 @@ export function EnquiriesPage() {
   const from = params.get("from") ?? "";
   const to = params.get("to") ?? "";
   const page = Number(params.get("page") ?? 1);
+  const pageSize = Number(params.get("pageSize") ?? 25);
   const query = useQuery({
-    queryKey: ["enquiries", q, status, type, packageFilter, from, to, page],
+    queryKey: ["enquiries", q, status, type, packageFilter, from, to, page, pageSize],
     queryFn: () =>
       apiRequest<PageResponse<EnquiryListItem>>(
-        `/admin/inquiries?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), ...(type ? { type } : {}), ...(packageFilter ? { package: packageFilter } : {}), ...(from ? { from } : {}), ...(to ? { to } : {}), page: String(page), pageSize: "25" })}`,
+        `/admin/inquiries?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), ...(type ? { type } : {}), ...(packageFilter ? { package: packageFilter } : {}), ...(from ? { from } : {}), ...(to ? { to } : {}), page: String(page), pageSize: String(pageSize) })}`,
       ),
   });
   const update = (key: string, value: string) => {
@@ -130,13 +140,17 @@ export function EnquiriesPage() {
         }
       />
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[0.8rem] border border-admin-border bg-admin-surface p-3 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft [&_input]:min-w-48 [&_select]:min-w-48">
-        <label>
+        <label className="relative">
           Search
-          <input
+          <span className="relative flex items-center">
+          <Search className="pointer-events-none absolute left-3 text-admin-ink-subtle" size={16} aria-hidden="true" />
+          <input className="pl-9! pr-9!"
             value={q}
             onChange={(event) => update("q", event.target.value)}
             placeholder="Reference, name or email"
           />
+          {q ? <button aria-label="Clear search" className="absolute right-2 inline-flex size-7 items-center justify-center rounded-lg border-0 bg-transparent text-admin-ink-subtle hover:bg-admin-surface-muted" onClick={() => update("q", "")} type="button"><X size={15} /></button> : null}
+          </span>
         </label>
         <label>
           Status
@@ -241,6 +255,12 @@ export function EnquiriesPage() {
             <Pagination
               meta={query.data.meta}
               onPage={(next) => update("page", String(next))}
+              onPageSize={(next) => {
+                const nextParams = new URLSearchParams(params);
+                nextParams.set("pageSize", String(next));
+                nextParams.set("page", "1");
+                setParams(nextParams);
+              }}
             />
           </>
         )}
@@ -331,6 +351,24 @@ export function EnquiryDetailPage() {
           </Link>
         }
       />
+      <div className="mb-4 overflow-x-auto rounded-2xl border border-admin-border bg-admin-surface p-3 shadow-admin-card" aria-label="Enquiry workflow">
+        <div className="flex min-w-[42rem] items-center">
+          {workflowStages.map((stage, index) => {
+            const currentIndex = workflowStages.indexOf(item.status);
+            const active = item.status !== "LOST" && index <= currentIndex;
+            const current = stage === item.status;
+            return (
+              <div className="flex flex-1 items-center last:flex-none" key={stage}>
+                <span className={`inline-flex min-h-9 items-center rounded-full border px-3 text-[0.68rem] font-black uppercase tracking-[0.05em] ${current ? "border-admin-brand bg-admin-brand text-white" : active ? "border-admin-positive/20 bg-admin-positive-soft text-admin-positive" : "border-admin-border bg-admin-surface-muted text-admin-ink-subtle"}`}>
+                  {stage.replaceAll("_", " ")}
+                </span>
+                {index < workflowStages.length - 1 ? <span className={`mx-2 h-px flex-1 ${active && index < currentIndex ? "bg-admin-positive" : "bg-admin-border"}`} /> : null}
+              </div>
+            );
+          })}
+          {item.status === "LOST" ? <span className="ml-3 inline-flex min-h-9 items-center rounded-full bg-admin-negative-soft px-3 text-[0.68rem] font-black uppercase text-admin-negative">Lost</span> : null}
+        </div>
+      </div>
       <div className="grid grid-cols-[minmax(0,1.6fr)_minmax(18rem,0.7fr)] items-start gap-4 max-[900px]:grid-cols-1">
         <div className="grid gap-4">
           <Card>
@@ -353,6 +391,13 @@ export function EnquiryDetailPage() {
                   ))}
                 </select>
               </label>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-admin-border-soft pt-4">
+              <a className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-admin-brand px-3.5 text-[0.78rem] font-black text-white no-underline hover:bg-admin-brand-deep" href={`mailto:${item.requester.email}`}><Mail size={16} />Email requester</a>
+              {item.requester.phone ? <>
+                <a className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-admin-border bg-white px-3.5 text-[0.78rem] font-black text-admin-brand no-underline hover:bg-admin-brand-soft" href={`tel:${item.requester.phone}`}><Phone size={16} />Call</a>
+                <a className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-admin-positive/20 bg-admin-positive-soft px-3.5 text-[0.78rem] font-black text-admin-positive no-underline hover:brightness-95" href={`https://wa.me/${item.requester.phone.replace(/\D/g, "")}`} rel="noreferrer" target="_blank"><MessageCircle size={16} />WhatsApp</a>
+              </> : null}
             </div>
             <dl className="my-4 grid grid-cols-2 max-[680px]:grid-cols-1 [&_div]:border-t [&_div]:border-admin-border-soft [&_div]:py-3 [&_dt]:text-[0.65rem] [&_dt]:uppercase [&_dt]:text-admin-ink-muted [&_dd]:mt-1 [&_dd]:mb-0 [&_dd]:break-words">
               <div>
@@ -480,12 +525,23 @@ export function EnquiryDetailPage() {
                     onChange={(event) => setReason(event.target.value)}
                   />
                 </label>
-                <Button
-                  disabled={!nextStatus || statusMutation.isPending}
-                  onClick={() => statusMutation.mutate()}
-                >
-                  Update status
-                </Button>
+                {nextStatus === "LOST" || nextStatus === "CLOSED" ? (
+                  <ConfirmButton
+                    confirmText={`Move to ${nextStatus.toLowerCase()}`}
+                    dialogDescription="This changes the sales workflow and records the transition in the audit history."
+                    dialogTitle={`Mark enquiry as ${nextStatus.toLowerCase()}?`}
+                    detailText={item.reference}
+                    disabled={!nextStatus || statusMutation.isPending}
+                    onConfirm={() => statusMutation.mutateAsync()}
+                    tone={nextStatus === "LOST" ? "danger" : "warning"}
+                  >
+                    Update status
+                  </ConfirmButton>
+                ) : (
+                  <Button disabled={!nextStatus || statusMutation.isPending} onClick={() => statusMutation.mutate()}>
+                    Update status
+                  </Button>
+                )}
               </div>
             ) : (
               <p>This workflow is closed. The API permits no next status.</p>
@@ -535,11 +591,12 @@ export function NotificationsPage() {
   const client = useQueryClient();
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
   const query = useQuery({
-    queryKey: ["notifications", status, page],
+    queryKey: ["notifications", status, page, pageSize],
     queryFn: () =>
       apiRequest<PageResponse<NotificationRecord>>(
-        `/admin/notifications?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page), pageSize: "25" })}`,
+        `/admin/notifications?${new URLSearchParams({ ...(status ? { status } : {}), page: String(page), pageSize: String(pageSize) })}`,
       ),
   });
   const retry = useMutation({
@@ -644,7 +701,7 @@ export function NotificationsPage() {
                 </tbody>
               </table>
             </div>
-            <Pagination meta={query.data.meta} onPage={setPage} />
+            <Pagination meta={query.data.meta} onPage={setPage} onPageSize={(next) => { setPageSize(next); setPage(1); }} />
           </>
         )}
       </Card>

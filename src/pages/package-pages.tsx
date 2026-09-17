@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
+import { Check, Circle, Search, X } from "lucide-react";
 import {
   Link,
   useNavigate,
@@ -29,6 +30,7 @@ import {
   LoadingPanel,
   PageHeader,
   Pagination,
+  StickyActionBar,
   StatusBadge,
   getErrorMessage,
   useToast,
@@ -294,11 +296,12 @@ export function PackagesPage() {
   const q = params.get("q") ?? "";
   const status = params.get("status") ?? "";
   const page = Number(params.get("page") ?? 1);
+  const pageSize = Number(params.get("pageSize") ?? 25);
   const query = useQuery({
-    queryKey: ["admin-packages", q, status, page],
+    queryKey: ["admin-packages", q, status, page, pageSize],
     queryFn: () =>
       apiRequest<PageResponse<PackageRecord>>(
-        `/admin/packages?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(page), pageSize: "20" })}`,
+        `/admin/packages?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(page), pageSize: String(pageSize) })}`,
       ),
   });
   const archive = useMutation({
@@ -356,14 +359,15 @@ export function PackagesPage() {
           </ActionLink>
         }
       />
-      <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[0.8rem] border border-admin-border bg-admin-surface p-3 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft [&_input]:min-w-48 [&_select]:min-w-48">
-        <label>
-          Search
-          <input
-            value={q}
-            onChange={(event) => updateParams({ q: event.target.value })}
-            placeholder="Title or slug"
-          />
+      <div className="mb-4 grid gap-3 rounded-2xl border border-admin-border bg-admin-surface p-3 shadow-admin-card">
+        <div className="flex flex-wrap items-end gap-3 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_input]:min-w-48 [&_select]:min-w-48">
+        <label className="flex-1">
+          Search packages
+          <span className="relative flex items-center">
+            <Search className="pointer-events-none absolute left-3 text-admin-ink-subtle" size={16} aria-hidden="true" />
+            <input className="pl-9! pr-9!" value={q} onChange={(event) => updateParams({ q: event.target.value })} placeholder="Title or slug" />
+            {q ? <button aria-label="Clear search" className="absolute right-2 inline-flex size-7 items-center justify-center rounded-lg border-0 bg-transparent text-admin-ink-subtle hover:bg-admin-surface-muted" onClick={() => updateParams({ q: "" })} type="button"><X size={15} /></button> : null}
+          </span>
         </label>
         <label>
           Status
@@ -377,6 +381,14 @@ export function PackagesPage() {
             <option>ARCHIVED</option>
           </select>
         </label>
+        </div>
+        <div className="flex gap-2 overflow-x-auto border-t border-admin-border-soft pt-3" aria-label="Quick status filters">
+          {[{ label: "All", value: "" }, { label: "Published", value: "PUBLISHED" }, { label: "Drafts", value: "DRAFT" }, { label: "Archived", value: "ARCHIVED" }].map((filter) => (
+            <button className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-[0.72rem] font-black transition ${status === filter.value ? "border-admin-brand bg-admin-brand text-white" : "border-admin-border bg-white text-admin-ink-muted hover:bg-admin-brand-soft"}`} key={filter.value} onClick={() => updateParams({ status: filter.value })} type="button">
+              {filter.label}{status === filter.value && query.data ? ` (${query.data.meta.total})` : ""}
+            </button>
+          ))}
+        </div>
       </div>
       <Card className="overflow-hidden p-0!">
         {query.isPending ? (
@@ -387,6 +399,7 @@ export function PackagesPage() {
           <EmptyState
             title="No packages match"
             description="Change the filters or create the first package."
+            action={<ActionLink to="/packages/new">Create package</ActionLink>}
           />
         ) : (
           <>
@@ -449,9 +462,12 @@ export function PackagesPage() {
                           </Button>
                           {item.status !== "ARCHIVED" ? (
                             <ConfirmButton
-                              question={`Archive ${item.title}? It will disappear from the public site.`}
+                              dialogTitle="Archive tour package?"
+                              dialogDescription="This package will disappear from the public site and remain available only in archived records."
+                              detailText={item.title}
+                              confirmText="Archive package"
                               disabled={archive.isPending}
-                              onClick={() => archive.mutate(item.id)}
+                              onConfirm={() => archive.mutateAsync(item.id)}
                             >
                               Archive
                             </ConfirmButton>
@@ -466,6 +482,7 @@ export function PackagesPage() {
             <Pagination
               meta={query.data.meta}
               onPage={(next) => updateParams({ page: String(next) })}
+              onPageSize={(next) => updateParams({ pageSize: String(next), page: "1" })}
             />
           </>
         )}
@@ -550,7 +567,19 @@ export function PackageEditorPage() {
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
-  const selectedMedia = form.watch("media");
+  const editorValues = form.watch();
+  const selectedMedia = editorValues.media;
+  const tabCompletion: Record<(typeof tabs)[number], boolean> = {
+    Basics: Boolean(editorValues.title && editorValues.slug && editorValues.days),
+    Content: Boolean(editorValues.summary && editorValues.overview),
+    Itinerary:
+      editorValues.itinerary.length > 0 &&
+      editorValues.itinerary.length >= Number(editorValues.days || 0),
+    Departures: editorValues.departures.length > 0,
+    Media: editorValues.media.length > 0,
+    Policies: Boolean(editorValues.seoTitle && editorValues.seoDescription),
+    Publishing: Boolean(editorValues.status),
+  };
   const assetById = useMemo(
     () =>
       new Map(mediaLibrary.data?.data.map((asset) => [asset.id, asset]) ?? []),
@@ -636,7 +665,7 @@ export function PackageEditorPage() {
         </div>
       ) : null}
       <div
-        className="mb-3 flex gap-1.5 overflow-x-auto p-1 [&_button]:whitespace-nowrap [&_button]:rounded-full [&_button]:border [&_button]:border-admin-border [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-2 [&_button]:text-[0.72rem] [&_button]:font-bold [&_button]:text-admin-ink-muted"
+        className="mb-4 flex gap-2 overflow-x-auto rounded-2xl border border-admin-border bg-admin-surface p-2 shadow-admin-card [&_button]:inline-flex [&_button]:items-center [&_button]:gap-2 [&_button]:whitespace-nowrap [&_button]:rounded-xl [&_button]:border [&_button]:border-transparent [&_button]:bg-transparent [&_button]:px-3 [&_button]:py-2.5 [&_button]:text-[0.72rem] [&_button]:font-black [&_button]:text-admin-ink-muted"
         role="tablist"
         aria-label="Package editor sections"
       >
@@ -653,11 +682,14 @@ export function PackageEditorPage() {
             role="tab"
             type="button"
           >
+            <span className={`inline-flex size-5 items-center justify-center rounded-full ${tabCompletion[item] ? "bg-admin-positive-soft text-admin-positive" : "bg-admin-surface-muted text-admin-ink-subtle"}`}>
+              {tabCompletion[item] ? <Check size={12} aria-hidden="true" /> : <Circle size={8} aria-hidden="true" />}
+            </span>
             {item}
           </button>
         ))}
       </div>
-      <Card className="min-h-[28rem]">
+      <Card className="admin-tab-panel min-h-[28rem]" key={tab}>
         {tab === "Basics" ? (
           <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
             <label>
@@ -1079,7 +1111,7 @@ export function PackageEditorPage() {
               <input maxLength={70} {...form.register("seoTitle")} />
               <span className="text-[0.68rem] font-normal text-admin-ink-subtle">
                 Optional. Up to 70 characters; the public site falls back to the
-                package title.
+                package title. <strong>{editorValues.seoTitle.length}/70</strong>
               </span>
               <FieldError message={form.formState.errors.seoTitle?.message} />
             </label>
@@ -1093,6 +1125,9 @@ export function PackageEditorPage() {
               <FieldError
                 message={form.formState.errors.seoDescription?.message}
               />
+              <span className="text-right text-[0.68rem] font-normal text-admin-ink-subtle">
+                {editorValues.seoDescription.length}/170 characters
+              </span>
             </label>
             <label className="col-span-full max-[680px]:col-auto">
               Downloadable brochure
@@ -1167,16 +1202,47 @@ export function PackageEditorPage() {
           </div>
         ) : null}
       </Card>
-      <div className="sticky bottom-4 z-10 mx-auto mt-4 flex max-w-[34rem] items-center justify-between rounded-xl border border-admin-border bg-admin-surface py-2 pr-3 pl-4 shadow-admin-dialog [&_span]:text-[0.73rem] [&_span]:font-bold [&_span]:text-admin-ink-muted">
-        <span>
-          {form.formState.isDirty
-            ? "Unsaved changes"
-            : "All current changes saved"}
-        </span>
-        <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? "Saving…" : "Save package"}
+      <StickyActionBar dirty={form.formState.isDirty} saving={save.isPending}>
+        {form.formState.isDirty ? (
+          <ConfirmButton
+            cancelText="Keep editing"
+            confirmText="Discard changes"
+            dialogDescription="Revert every unsaved change made in this editing session?"
+            dialogTitle="Discard package changes?"
+            onConfirm={() =>
+              form.reset(
+                packageQuery.data
+                  ? recordToForm(packageQuery.data.data)
+                  : blankForm,
+              )
+            }
+            tone="warning"
+          >
+            Discard
+          </ConfirmButton>
+        ) : null}
+        <Button
+          disabled={save.isPending}
+          onClick={() => {
+            form.setValue("status", "DRAFT", { shouldDirty: true });
+            void form.handleSubmit((values) => save.mutate(values))();
+          }}
+          type="button"
+          variant="secondary"
+        >
+          Save as draft
         </Button>
-      </div>
+        <Button
+          disabled={save.isPending || !form.formState.isDirty}
+          type="submit"
+        >
+          {save.isPending
+            ? "Saving…"
+            : editorValues.status === "PUBLISHED"
+              ? "Publish changes"
+              : "Save changes"}
+        </Button>
+      </StickyActionBar>
     </form>
   );
 }
