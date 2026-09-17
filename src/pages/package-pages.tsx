@@ -166,6 +166,10 @@ const lines = (value: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 const text = (value: string | null | undefined) => value ?? "";
+const joinLines = (value: unknown) =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string").join("\n")
+    : "";
 
 function recordToForm(record: PackageRecord): PackageForm {
   return {
@@ -179,9 +183,9 @@ function recordToForm(record: PackageRecord): PackageForm {
     basePrice: text(record.basePrice),
     currency: record.currency,
     priceBasis: record.priceBasis,
-    highlightsText: record.highlights.join("\n"),
-    inclusionsText: record.inclusions.join("\n"),
-    exclusionsText: record.exclusions.join("\n"),
+    highlightsText: joinLines(record.highlights),
+    inclusionsText: joinLines(record.inclusions),
+    exclusionsText: joinLines(record.exclusions),
     transportInformation: text(record.transportInformation),
     accommodationNotes: text(record.accommodationNotes),
     importantInformation: text(record.importantInformation),
@@ -201,7 +205,7 @@ function recordToForm(record: PackageRecord): PackageForm {
       dayNumber: String(item.dayNumber),
       title: item.title,
       description: item.description,
-      activitiesText: item.activities.join("\n"),
+      activitiesText: joinLines(item.activities),
       meals: text(item.meals),
       accommodation: text(item.accommodation),
     })),
@@ -980,6 +984,12 @@ export function PackageEditorPage() {
                 >
                   Add
                 </Button>
+                <Link
+                  className="inline-flex min-h-[2.6rem] items-center justify-center rounded-[0.6rem] border border-admin-border bg-admin-surface px-4 py-2.5 text-sm font-bold no-underline transition hover:bg-admin-brand-soft"
+                  to="/media/new"
+                >
+                  Upload image
+                </Link>
               </div>
             </div>
             {media.fields.length === 0 ? (
@@ -987,8 +997,8 @@ export function PackageEditorPage() {
                 title="No package media"
                 description="Upload assets in the media library, then select them here."
                 action={
-                  <Link className="inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-[0.6rem] border border-transparent px-4 py-2.5 font-bold no-underline transition duration-150 active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 border-admin-border bg-admin-surface text-admin-brand hover:not-disabled:bg-admin-brand-soft" to="/media">
-                    Open media library
+                  <Link className="inline-flex min-h-[2.6rem] items-center justify-center gap-2 rounded-[0.6rem] border border-transparent px-4 py-2.5 font-bold no-underline transition duration-150 active:not-disabled:translate-y-px disabled:cursor-not-allowed disabled:opacity-50 border-admin-border bg-admin-surface text-admin-brand hover:not-disabled:bg-admin-brand-soft" to="/media/new">
+                    Upload package image
                   </Link>
                 }
               />

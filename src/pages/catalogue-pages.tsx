@@ -3,7 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { z } from "zod";
 import {
   apiRequest,
@@ -44,6 +44,7 @@ const taxonomySchema = z.object({
   status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]),
   sortOrder: z.string().regex(/^\d+$/, "Use a whole number."),
   isDemo: z.boolean(),
+  coverMediaId: z.string().max(30),
 });
 type TaxonomyForm = z.infer<typeof taxonomySchema>;
 const blankTaxonomy: TaxonomyForm = {
@@ -53,6 +54,7 @@ const blankTaxonomy: TaxonomyForm = {
   status: "DRAFT",
   sortOrder: "0",
   isDemo: false,
+  coverMediaId: "",
 };
 
 function TaxonomyPage({
@@ -81,6 +83,14 @@ function TaxonomyPage({
     queryKey: [resource],
     queryFn: () => apiRequest<DataResponse<Taxonomy[]>>(`/admin/${resource}`),
   });
+  const media = useQuery({
+    queryKey: ["media-library", "destination-covers"],
+    queryFn: () =>
+      apiRequest<PageResponse<MediaAsset>>(
+        "/admin/media?pageSize=100&visibility=PUBLIC",
+      ),
+    enabled: resource === "destinations",
+  });
   const save = useMutation({
     mutationFn: (values: TaxonomyForm) =>
       apiRequest<DataResponse<Taxonomy>>(
@@ -91,6 +101,8 @@ function TaxonomyPage({
           body: {
             ...values,
             description: values.description || null,
+            coverMediaId:
+              resource === "destinations" ? values.coverMediaId || null : null,
             sortOrder: Number(values.sortOrder),
             publishedAt: null,
           },
@@ -134,6 +146,7 @@ function TaxonomyPage({
         status: record.status,
         sortOrder: String(record.sortOrder),
         isDemo: record.isDemo,
+        coverMediaId: record.coverMediaId ?? "",
       });
     });
     return () => cancelAnimationFrame(frame);
@@ -250,6 +263,42 @@ function TaxonomyPage({
               Description
               <textarea {...form.register("description")} />
             </label>
+            {resource === "destinations" ? (
+              <div className="grid gap-3 rounded-[0.7rem] border border-admin-border bg-admin-surface-muted p-4">
+                <label>
+                  Place cover image
+                  <select
+                    disabled={media.isPending}
+                    {...form.register("coverMediaId")}
+                  >
+                    <option value="">No cover image</option>
+                    {media.data?.data
+                      .filter((asset) => asset.mimeType.startsWith("image/"))
+                      .map((asset) => (
+                        <option key={asset.id} value={asset.id}>
+                          {asset.altText}
+                        </option>
+                      ))}
+                  </select>
+                  <span className="text-[0.68rem] font-normal text-admin-ink-subtle">
+                    This image appears on the homepage and Destinations page.
+                  </span>
+                </label>
+                {form.watch("coverMediaId") ? (
+                  <img
+                    className="aspect-video w-full max-w-xl rounded-[0.65rem] border border-admin-border object-cover"
+                    src={privateMediaUrl(form.watch("coverMediaId"))}
+                    alt="Selected destination cover preview"
+                  />
+                ) : null}
+                <Link
+                  className="inline-flex min-h-[2.6rem] w-fit items-center justify-center rounded-[0.6rem] border border-admin-border bg-admin-surface px-4 py-2.5 text-sm font-bold no-underline transition hover:bg-admin-brand-soft"
+                  to="/media/new"
+                >
+                  Upload a new place image
+                </Link>
+              </div>
+            ) : null}
             <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
                 Status

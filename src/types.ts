@@ -18,6 +18,7 @@ export type Taxonomy = {
   slug: string;
   name: string;
   description: string | null;
+  coverMediaId?: string | null;
   status: PublicationStatus;
   sortOrder: number;
   isDemo: boolean;

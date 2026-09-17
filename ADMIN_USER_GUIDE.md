@@ -29,6 +29,13 @@ The API enforces these rules even if a user manually calls a hidden endpoint.
 4. Unpublish or archive content that should disappear. Do not use a public
    `?preview=true` URL; it never reveals drafts.
 
+To change only an image, upload the replacement as **Public** media first. For
+a place card, open **Destinations**, edit the destination, and choose its
+**Place cover image**. For a package, open **Packages**, select the **Media**
+tab, add the image, choose the cover image if needed, and save. Phone numbers,
+addresses and departure dates do not need to be re-entered when only an image
+is changing.
+
 Use **Homepage** to reorder the supported finite sections and change visibility.
 Use **Pages** for About and policies, **Settings** for only confirmed public
 business/contact facts, **Navigation** for menus/footer links, and **FAQs** or
