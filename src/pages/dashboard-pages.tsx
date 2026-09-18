@@ -5,7 +5,6 @@ import {
   CalendarDays,
   FileText,
   Inbox,
-  MapPinned,
   Plus,
   UploadCloud,
   type LucideIcon,
@@ -93,7 +92,6 @@ export function DashboardPage() {
               {user?.role !== "SALES_AGENT" ? (
                 <>
                   <Link to="/packages/new"><Plus size={15} />New package</Link>
-                  <Link to="/destinations/new"><MapPinned size={15} />New destination</Link>
                   <Link to="/media/new"><UploadCloud size={15} />Upload media</Link>
                 </>
               ) : null}

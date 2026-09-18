@@ -13,6 +13,8 @@ import {
   type PageResponse,
 } from "../api";
 import { useAuth } from "../auth";
+import { SeoFields } from "../components/SeoFields";
+import { SocialLinksForm } from "../components/SocialLinksForm";
 import { parseMenuLines } from "../lib/navigation";
 import type { MediaAsset, PackageRecord, PublicationStatus } from "../types";
 import {
@@ -103,8 +105,8 @@ export function ContentPagesPage() {
           csrfToken,
           body: {
             ...value,
-            seoTitle: value.seoTitle || null,
-            seoDescription: value.seoDescription || null,
+            seoTitle: value.seoTitle.trim() || null,
+            seoDescription: value.seoDescription.trim() || null,
             publishedAt: value.publishedAt
               ? new Date(value.publishedAt).toISOString()
               : null,
@@ -267,16 +269,15 @@ export function ContentPagesPage() {
                 {...form.register("contentHtml")}
               />
             </label>
-            <label>
-              SEO title
-              <input {...form.register("seoTitle")} />
-              <span className="text-right text-[0.68rem] font-normal text-admin-ink-subtle">{form.watch("seoTitle").length}/70 characters</span>
-            </label>
-            <label>
-              SEO description
-              <textarea rows={3} {...form.register("seoDescription")} />
-              <span className="text-right text-[0.68rem] font-normal text-admin-ink-subtle">{form.watch("seoDescription").length}/170 characters</span>
-            </label>
+            <SeoFields
+              titleField={form.register("seoTitle")}
+              descriptionField={form.register("seoDescription")}
+              titleValue={form.watch("seoTitle")}
+              descriptionValue={form.watch("seoDescription")}
+              fallbackTitle={form.watch("title")}
+              titleError={form.formState.errors.seoTitle?.message}
+              descriptionError={form.formState.errors.seoDescription?.message}
+            />
             <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
                 Status
@@ -865,7 +866,7 @@ export function SettingsPage() {
       <PageHeader
         eyebrow="Configuration"
         title={editorOpen ? (routeKey ? "Edit public setting" : "New public setting") : "Public settings"}
-        description="Company contact, social, WhatsApp, SEO and other JSON settings. Secret-like keys cannot be public."
+        description="Update your social links below. Other company and contact settings are available in the settings list."
         actions={
           editorOpen ? (
             <BackLink to="/content/settings" />
@@ -875,6 +876,7 @@ export function SettingsPage() {
         }
       />
       <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
+        {!editorOpen && settings.isSuccess ? <SocialLinksForm settings={settings.data.data} /> : null}
         {!editorOpen ? (
         <Card className="overflow-hidden p-0!">
           {settings.isPending ? (
@@ -1826,8 +1828,8 @@ export function BlogPage() {
             coverMediaId: value.coverMediaId || null,
             publicAuthorName: value.publicAuthorName || null,
             publicAuthorBio: value.publicAuthorBio || null,
-            seoTitle: value.seoTitle || null,
-            seoDescription: value.seoDescription || null,
+            seoTitle: value.seoTitle.trim() || null,
+            seoDescription: value.seoDescription.trim() || null,
             publishedAt: value.publishedAt
               ? new Date(value.publishedAt).toISOString()
               : null,
@@ -2156,18 +2158,16 @@ export function BlogPage() {
                   {...form.register("publicAuthorBio")}
                 />
               </label>
-              <label>
-                SEO title
-                <input maxLength={70} {...form.register("seoTitle")} />
-              </label>
-              <label>
-                SEO description
-                <textarea
-                  maxLength={170}
-                  rows={3}
-                  {...form.register("seoDescription")}
-                />
-              </label>
+              <SeoFields
+                titleField={form.register("seoTitle")}
+                descriptionField={form.register("seoDescription")}
+                titleValue={form.watch("seoTitle")}
+                descriptionValue={form.watch("seoDescription")}
+                fallbackTitle={form.watch("title")}
+                fallbackDescription={form.watch("excerpt")}
+                titleError={form.formState.errors.seoTitle?.message}
+                descriptionError={form.formState.errors.seoDescription?.message}
+              />
             </div>
             <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
               <input type="checkbox" {...form.register("isFeatured")} />{" "}

@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiRequest, type DataResponse, type PageResponse } from "../api";
@@ -336,12 +335,17 @@ type AuditRecord = {
   action: string;
   entityType: string;
   entityId: string | null;
-  before: unknown;
-  after: unknown;
-  requestId: string | null;
-  actor: { id: string; displayName: string } | null;
+  ipAddress: string | null;
+  requestMethod: string | null;
+  requestPath: string | null;
+  actor: { id: string | null; displayName: string; email: string | null; role: string | null } | null;
   createdAt: string;
 };
+const activityDateFormat = new Intl.DateTimeFormat("en-IN", {
+  timeZone: "Asia/Kolkata", year: "numeric", month: "short", day: "2-digit",
+  hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true,
+});
+const activityLabel = (value: string) => value.toLowerCase().replaceAll("_", " ").replace(/^\w/, (letter) => letter.toUpperCase());
 export function AuditLogsPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -349,40 +353,29 @@ export function AuditLogsPage() {
   const [actionFilter, setActionFilter] = useState("");
   const [actorFilter, setActorFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
-  const [selectedAudit, setSelectedAudit] = useState<AuditRecord | null>(null);
+  const [ipFilter, setIpFilter] = useState("");
+  const [filters, setFilters] = useState<Record<string, string>>({});
   const query = useQuery({
-    queryKey: ["audit-logs", page, pageSize, entityType],
-    queryFn: () =>
+    queryKey: ["audit-logs", page, pageSize, filters],
+    queryFn: ({ signal }) =>
       apiRequest<PageResponse<AuditRecord>>(
-        `/admin/audit-logs?${new URLSearchParams({ page: String(page), pageSize: String(pageSize), ...(entityType ? { entityType } : {}) })}`,
+        `/admin/audit-logs?${new URLSearchParams({ page: String(page), pageSize: String(pageSize), ...filters })}`,
+        { signal },
       ),
   });
-  const visibleRecords = (query.data?.data ?? []).filter((item) => {
-    if (actionFilter && item.action !== actionFilter) return false;
-    if (
-      actorFilter &&
-      !(item.actor?.displayName ?? "System")
-        .toLowerCase()
-        .includes(actorFilter.toLowerCase())
-    )
-      return false;
-    if (dateFilter && item.createdAt.slice(0, 10) !== dateFilter) return false;
-    return true;
-  });
-  useEffect(() => {
-    if (!selectedAudit) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSelectedAudit(null);
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [selectedAudit]);
+  const visibleRecords = query.data?.data ?? [];
+  const applyFilters = () => {
+    setFilters(Object.fromEntries(Object.entries({ entityType, action: actionFilter, actor: actorFilter, date: dateFilter, ipAddress: ipFilter })
+      .map(([key, value]) => [key, value.trim()]).filter(([, value]) => value)));
+    setPage(1);
+  };
   return (
     <>
       <PageHeader
         eyebrow="Super Admin"
-        title="Audit trail"
-        description="Review security and content mutations with actor, request reference and before/after context."
+        title="Activity logs"
+        description="Review actions, user details, IP addresses and exact times. Dates and times use IST (Asia/Kolkata)."
+        actions={<Button variant="secondary" onClick={() => void query.refetch()} disabled={query.isFetching}>Refresh logs</Button>}
       />
       <div className="mb-4 flex flex-wrap items-center gap-3 rounded-[0.8rem] border border-admin-border bg-admin-surface p-3 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft [&_input]:min-w-48 [&_select]:min-w-48">
         <label>
@@ -391,29 +384,32 @@ export function AuditLogsPage() {
             value={entityType}
             onChange={(event) => {
               setEntityType(event.target.value);
-              setPage(1);
             }}
             placeholder="Package, Enquiry, AdminUser…"
           />
         </label>
         <label>
-          Event type
-          <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
-            <option value="">All events on this page</option>
-            {[...new Set((query.data?.data ?? []).map((item) => item.action))].sort().map((action) => (
-              <option key={action} value={action}>{action.replaceAll("_", " ")}</option>
-            ))}
-          </select>
+          Action performed
+          <input value={actionFilter} onChange={(event) => setActionFilter(event.target.value)} placeholder="Package updated, login..." maxLength={120} />
         </label>
         <label>
           User
-          <input value={actorFilter} onChange={(event) => setActorFilter(event.target.value)} placeholder="Actor name" />
+          <input value={actorFilter} onChange={(event) => setActorFilter(event.target.value)} placeholder="Name, email or user ID" maxLength={254} />
         </label>
         <label>
-          Date
+          Date (IST)
           <input type="date" value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} />
         </label>
+        <label>
+          IP address
+          <input value={ipFilter} onChange={(event) => setIpFilter(event.target.value)} placeholder="Exact IPv4 or IPv6 address" maxLength={45} />
+        </label>
+        <Button onClick={applyFilters}>Apply filters</Button>
+        <Button variant="secondary" onClick={() => {
+          setEntityType(""); setActionFilter(""); setActorFilter(""); setDateFilter(""); setIpFilter(""); setFilters({}); setPage(1);
+        }}>Reset</Button>
       </div>
+      <p className="text-sm text-admin-ink-subtle">IP addresses and user snapshots are recorded for new activity. Older entries may show “Not recorded”. Filters search all logs.</p>
       <Card className="overflow-hidden p-0!">
         {query.isPending ? (
           <LoadingPanel />
@@ -421,8 +417,8 @@ export function AuditLogsPage() {
           <ErrorPanel error={query.error} retry={() => void query.refetch()} />
         ) : visibleRecords.length === 0 ? (
           <EmptyState
-            title="No audit records"
-            description="No audit events match this filter."
+            title="No activity logs"
+            description="No activity matches the selected filters."
           />
         ) : (
           <>
@@ -430,11 +426,11 @@ export function AuditLogsPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Action</th>
-                    <th>Entity</th>
-                    <th>Actor</th>
-                    <th>Time</th>
-                    <th>Context</th>
+                    <th>Action performed</th>
+                    <th>Affected record</th>
+                    <th>User details</th>
+                    <th>IP address</th>
+                    <th>Date &amp; time (IST)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -442,21 +438,23 @@ export function AuditLogsPage() {
                     <tr key={item.id}>
                       <td>
                         <span className="font-bold text-admin-brand-deep">
-                          {item.action.replaceAll("_", " ")}
+                          {activityLabel(item.action)}
                         </span>
                         <small>
-                          {item.requestId ?? "No request reference"}
+                          {item.requestMethod && item.requestPath ? `${item.requestMethod} ${item.requestPath}` : "Request not recorded"}
                         </small>
                       </td>
                       <td>
                         {item.entityType}
                         <small>{item.entityId ?? "—"}</small>
                       </td>
-                      <td>{item.actor?.displayName ?? "System"}</td>
-                      <td>{formatDate(item.createdAt)}</td>
                       <td>
-                        <Button variant="ghost" onClick={() => setSelectedAudit(item)}>Inspect diff</Button>
+                        <strong>{item.actor?.displayName ?? "System / unavailable"}</strong>
+                        <small>{item.actor?.email ?? "Email not recorded"}</small>
+                        <small>{item.actor?.role ? activityLabel(item.actor.role) : "Role not recorded"}</small>
                       </td>
+                      <td className="font-mono">{item.ipAddress ?? "Not recorded"}</td>
+                      <td className="whitespace-nowrap"><time dateTime={item.createdAt}>{activityDateFormat.format(new Date(item.createdAt))}</time></td>
                     </tr>
                   ))}
                 </tbody>
@@ -466,20 +464,6 @@ export function AuditLogsPage() {
           </>
         )}
       </Card>
-      {selectedAudit ? (
-        <div className="admin-dialog-backdrop fixed inset-0 z-[140] flex items-center justify-center bg-admin-overlay p-4 backdrop-blur-sm" onMouseDown={(event) => { if (event.currentTarget === event.target) setSelectedAudit(null); }}>
-          <section aria-labelledby="audit-diff-title" aria-modal="true" className="admin-dialog-panel max-h-[85vh] w-full max-w-4xl overflow-hidden rounded-3xl border border-white/60 bg-white shadow-admin-dialog" role="dialog">
-            <header className="flex items-start justify-between gap-4 border-b border-admin-border px-6 py-5">
-              <div><p className="m-0 text-[0.65rem] font-black uppercase tracking-[0.12em] text-admin-accent">Audit change</p><h2 className="mt-1 mb-0" id="audit-diff-title">{selectedAudit.action.replaceAll("_", " ")}</h2><small className="text-admin-ink-subtle">{selectedAudit.entityType} · {selectedAudit.actor?.displayName ?? "System"} · {formatDate(selectedAudit.createdAt)}</small></div>
-              <button aria-label="Close diff" autoFocus className="inline-flex size-10 items-center justify-center rounded-xl border border-admin-border bg-white text-admin-ink-muted hover:bg-admin-surface-muted" onClick={() => setSelectedAudit(null)} type="button"><X size={18} /></button>
-            </header>
-            <div className="grid max-h-[65vh] grid-cols-2 gap-px overflow-auto bg-admin-border max-[760px]:grid-cols-1">
-              <div className="min-w-0 bg-white p-5"><h3 className="mt-0">Before</h3><pre className="overflow-auto whitespace-pre-wrap rounded-2xl bg-admin-brand-deep p-4 text-[0.72rem] leading-6 text-white">{JSON.stringify(selectedAudit.before, null, 2) ?? "No previous state"}</pre></div>
-              <div className="min-w-0 bg-white p-5"><h3 className="mt-0">After</h3><pre className="overflow-auto whitespace-pre-wrap rounded-2xl bg-admin-brand-deep p-4 text-[0.72rem] leading-6 text-white">{JSON.stringify(selectedAudit.after, null, 2) ?? "No resulting state"}</pre></div>
-            </div>
-          </section>
-        </div>
-      ) : null}
     </>
   );
 }

@@ -12,12 +12,9 @@ import {
   Gauge,
   Images,
   Inbox,
-  LayoutPanelTop,
   LogOut,
-  MapPinned,
   Menu,
   MessageSquareQuote,
-  Navigation,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
@@ -54,7 +51,6 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
     label: "Catalogue",
     items: [
       { to: "/packages", label: "Tour packages", icon: BookOpenText, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/destinations", label: "Destinations", icon: MapPinned, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
       { to: "/categories", label: "Categories", icon: Tags, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
       { to: "/media", label: "Media library", icon: Images, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
       { to: "/gallery", label: "Gallery albums", icon: GalleryHorizontal, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
@@ -65,8 +61,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { to: "/blog", label: "Blog", icon: FileStack, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
       { to: "/content/pages", label: "Pages & policies", icon: ScrollText, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/content/home", label: "Homepage", icon: LayoutPanelTop, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/content/navigation", label: "Navigation", icon: Navigation, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+      { to: "/content/seo", label: "Page SEO", icon: Search, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
       { to: "/content/engagement", label: "FAQs & testimonials", icon: MessageSquareQuote, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
       { to: "/content/settings", label: "Public settings", icon: Settings2, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
     ],
@@ -82,7 +77,7 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
     label: "Administration",
     items: [
       { to: "/users", label: "Staff users", icon: Users, roles: ["SUPER_ADMIN"] },
-      { to: "/audit", label: "Audit trail", icon: ScrollText, roles: ["SUPER_ADMIN"] },
+      { to: "/audit", label: "Activity logs", icon: ScrollText, roles: ["SUPER_ADMIN"] },
       { to: "/profile", label: "My profile", icon: CircleUserRound },
       { to: "/system/environment", label: "Environment", icon: ServerCog },
     ],
@@ -91,7 +86,6 @@ const navGroups: Array<{ label: string; items: NavItem[] }> = [
 
 const quickActions: Array<{ to: string; label: string; icon: LucideIcon; roles: Role[] }> = [
   { to: "/packages/new", label: "New package", icon: BookOpenText, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-  { to: "/destinations/new", label: "New destination", icon: MapPinned, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
   { to: "/blog/new", label: "New blog article", icon: FileStack, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
   { to: "/media/new", label: "Upload media", icon: Images, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
 ];

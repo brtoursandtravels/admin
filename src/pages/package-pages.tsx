@@ -18,6 +18,7 @@ import {
   type PageResponse,
 } from "../api";
 import { useAuth } from "../auth";
+import { SeoFields } from "../components/SeoFields";
 import type { MediaAsset, PackageRecord, Taxonomy } from "../types";
 import {
   ActionLink,
@@ -93,7 +94,11 @@ const packageFormSchema = z
     isFeatured: z.boolean(),
     featuredOrder: z.string(),
     isDemo: z.boolean(),
-    destinationIds: z.array(z.string()),
+    destinationsText: z.string().max(4_000).superRefine((value, context) => {
+      const names = lines(value);
+      if (names.length > 20) context.addIssue({ code: "custom", message: "Add up to 20 destinations." });
+      if (names.some((name) => name.length > 160)) context.addIssue({ code: "custom", message: "Keep each destination within 160 characters." });
+    }),
     categoryIds: z.array(z.string()),
     itinerary: z.array(itineraryItem),
     departures: z.array(departureItem),
@@ -156,7 +161,7 @@ const blankForm: PackageForm = {
   isFeatured: false,
   featuredOrder: "",
   isDemo: false,
-  destinationIds: [],
+  destinationsText: "",
   categoryIds: [],
   itinerary: [],
   departures: [],
@@ -201,7 +206,7 @@ function recordToForm(record: PackageRecord): PackageForm {
     featuredOrder:
       record.featuredOrder === null ? "" : String(record.featuredOrder),
     isDemo: record.isDemo,
-    destinationIds: record.destinations.map((item) => item.id),
+    destinationsText: record.destinations.map((item) => item.name).join("\n"),
     categoryIds: record.categories.map((item) => item.id),
     itinerary: record.itinerary.map((item) => ({
       dayNumber: String(item.dayNumber),
@@ -249,8 +254,8 @@ function formToPayload(value: PackageForm) {
     accommodationNotes: value.accommodationNotes || null,
     importantInformation: value.importantInformation || null,
     cancellationRules: value.cancellationRules || null,
-    seoTitle: value.seoTitle || null,
-    seoDescription: value.seoDescription || null,
+    seoTitle: value.seoTitle.trim() || null,
+    seoDescription: value.seoDescription.trim() || null,
     brochureMediaId: value.brochureMediaId || null,
     status: value.status,
     publishedAt: value.publishedAt
@@ -262,7 +267,7 @@ function formToPayload(value: PackageForm) {
         ? Number(value.featuredOrder)
         : null,
     isDemo: value.isDemo,
-    destinationIds: value.destinationIds,
+    destinationNames: lines(value.destinationsText),
     categoryIds: value.categoryIds,
     itinerary: value.itinerary.map((item, index) => ({
       dayNumber: index + 1,
@@ -521,10 +526,6 @@ export function PackageEditorPage() {
     queryFn: () => getPackage(id!),
     enabled: editing,
   });
-  const destinations = useQuery({
-    queryKey: ["destinations"],
-    queryFn: () => apiRequest<DataResponse<Taxonomy[]>>("/admin/destinations"),
-  });
   const categories = useQuery({
     queryKey: ["categories"],
     queryFn: () => apiRequest<DataResponse<Taxonomy[]>>("/admin/categories"),
@@ -561,6 +562,7 @@ export function PackageEditorPage() {
           : "Package created as a real database record.",
       );
       await queryClient.invalidateQueries({ queryKey: ["admin-packages"] });
+      await queryClient.invalidateQueries({ queryKey: ["destinations"] });
       await queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       if (!editing)
         navigate(`/packages/${result.data.id}/edit`, { replace: true });
@@ -577,7 +579,7 @@ export function PackageEditorPage() {
       editorValues.itinerary.length >= Number(editorValues.days || 0),
     Departures: editorValues.departures.length > 0,
     Media: editorValues.media.length > 0,
-    Policies: Boolean(editorValues.seoTitle && editorValues.seoDescription),
+    Policies: Boolean(editorValues.importantInformation || editorValues.cancellationRules),
     Publishing: Boolean(editorValues.status),
   };
   const assetById = useMemo(
@@ -595,7 +597,7 @@ export function PackageEditorPage() {
       />
     );
   const multiSelect = (
-    field: "destinationIds" | "categoryIds",
+    field: "categoryIds",
     values: string[],
   ) => (
     <select
@@ -613,10 +615,7 @@ export function PackageEditorPage() {
       }
     >
       {values.map((value) => {
-        const record =
-          field === "destinationIds"
-            ? destinations.data?.data.find((item) => item.id === value)
-            : categories.data?.data.find((item) => item.id === value);
+        const record = categories.data?.data.find((item) => item.id === value);
         return record ? (
           <option key={record.id} value={record.id}>
             {record.name} · {record.status}
@@ -741,12 +740,10 @@ export function PackageEditorPage() {
             <label>
               Destinations
               <span className="text-[0.68rem] font-normal text-admin-ink-subtle">
-                Hold Ctrl/Command to select multiple.
+                Type one destination per line. No separate setup is needed.
               </span>
-              {multiSelect(
-                "destinationIds",
-                destinations.data?.data.map((item) => item.id) ?? [],
-              )}
+              <textarea rows={4} placeholder={"Matheran\nMahabaleshwar"} {...form.register("destinationsText")} />
+              <FieldError message={form.formState.errors.destinationsText?.message} />
             </label>
             <label>
               Categories
@@ -1107,29 +1104,6 @@ export function PackageEditorPage() {
               <textarea {...form.register("cancellationRules")} />
             </label>
             <label className="col-span-full max-[680px]:col-auto">
-              SEO title
-              <input maxLength={70} {...form.register("seoTitle")} />
-              <span className="text-[0.68rem] font-normal text-admin-ink-subtle">
-                Optional. Up to 70 characters; the public site falls back to the
-                package title. <strong>{editorValues.seoTitle.length}/70</strong>
-              </span>
-              <FieldError message={form.formState.errors.seoTitle?.message} />
-            </label>
-            <label className="col-span-full max-[680px]:col-auto">
-              SEO description
-              <textarea
-                maxLength={170}
-                rows={3}
-                {...form.register("seoDescription")}
-              />
-              <FieldError
-                message={form.formState.errors.seoDescription?.message}
-              />
-              <span className="text-right text-[0.68rem] font-normal text-admin-ink-subtle">
-                {editorValues.seoDescription.length}/170 characters
-              </span>
-            </label>
-            <label className="col-span-full max-[680px]:col-auto">
               Downloadable brochure
               <select {...form.register("brochureMediaId")}>
                 <option value="">No brochure</option>
@@ -1201,6 +1175,18 @@ export function PackageEditorPage() {
             </div>
           </div>
         ) : null}
+      </Card>
+      <Card className="mt-4">
+        <SeoFields
+          titleField={form.register("seoTitle")}
+          descriptionField={form.register("seoDescription")}
+          titleValue={editorValues.seoTitle}
+          descriptionValue={editorValues.seoDescription}
+          fallbackTitle={editorValues.title}
+          fallbackDescription={editorValues.summary}
+          titleError={form.formState.errors.seoTitle?.message}
+          descriptionError={form.formState.errors.seoDescription?.message}
+        />
       </Card>
       <StickyActionBar dirty={form.formState.isDirty} saving={save.isPending}>
         {form.formState.isDirty ? (

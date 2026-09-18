@@ -1,7 +1,7 @@
 import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import "@fontsource/lato/400.css";
 import "@fontsource/lato/700.css";
 import "@fontsource/lato/900.css";
@@ -37,11 +37,6 @@ const PackagePreviewPage = lazy(() =>
     default: module.PackagePreviewPage,
   })),
 );
-const DestinationsPage = lazy(() =>
-  import("./pages/catalogue-pages").then((module) => ({
-    default: module.DestinationsPage,
-  })),
-);
 const CategoriesPage = lazy(() =>
   import("./pages/catalogue-pages").then((module) => ({
     default: module.CategoriesPage,
@@ -72,20 +67,13 @@ const EngagementPage = lazy(() =>
     default: module.EngagementPage,
   })),
 );
-const HomepageSectionsPage = lazy(() =>
-  import("./pages/content-pages").then((module) => ({
-    default: module.HomepageSectionsPage,
-  })),
-);
-const NavigationPage = lazy(() =>
-  import("./pages/content-pages").then((module) => ({
-    default: module.NavigationPage,
-  })),
-);
 const SettingsPage = lazy(() =>
   import("./pages/content-pages").then((module) => ({
     default: module.SettingsPage,
   })),
+);
+const PageSeoPage = lazy(() =>
+  import("./pages/seo-pages").then((module) => ({ default: module.PageSeoPage })),
 );
 const EnquiriesPage = lazy(() =>
   import("./pages/sales-pages").then((module) => ({
@@ -142,9 +130,7 @@ const router = createBrowserRouter(
                   path: "packages/:id/preview",
                   element: <PackagePreviewPage />,
                 },
-                { path: "destinations", element: <DestinationsPage /> },
-                { path: "destinations/new", element: <DestinationsPage /> },
-                { path: "destinations/:id/edit", element: <DestinationsPage /> },
+                { path: "destinations/*", element: <Navigate to="/packages" replace /> },
                 { path: "categories", element: <CategoriesPage /> },
                 { path: "categories/new", element: <CategoriesPage /> },
                 { path: "categories/:id/edit", element: <CategoriesPage /> },
@@ -160,18 +146,16 @@ const router = createBrowserRouter(
                 { path: "content/pages", element: <ContentPagesPage /> },
                 { path: "content/pages/new", element: <ContentPagesPage /> },
                 { path: "content/pages/:id/edit", element: <ContentPagesPage /> },
-                { path: "content/home", element: <HomepageSectionsPage /> },
-                { path: "content/home/new", element: <HomepageSectionsPage /> },
-                { path: "content/home/:id/edit", element: <HomepageSectionsPage /> },
-                { path: "content/navigation", element: <NavigationPage /> },
-                { path: "content/navigation/new", element: <NavigationPage /> },
-                { path: "content/navigation/:key/edit", element: <NavigationPage /> },
+                { path: "content/home/*", element: <Navigate to="/content/settings" replace /> },
+                { path: "content/navigation/*", element: <Navigate to="/content/settings" replace /> },
                 { path: "content/engagement", element: <EngagementPage /> },
                 { path: "content/engagement/faqs/new", element: <EngagementPage /> },
                 { path: "content/engagement/faqs/:id/edit", element: <EngagementPage /> },
                 { path: "content/engagement/testimonials/new", element: <EngagementPage /> },
                 { path: "content/engagement/testimonials/:id/edit", element: <EngagementPage /> },
                 { path: "content/settings", element: <SettingsPage /> },
+                { path: "content/seo", element: <PageSeoPage /> },
+                { path: "content/seo/:key/edit", element: <PageSeoPage /> },
                 { path: "content/settings/new", element: <SettingsPage /> },
                 { path: "content/settings/:key/edit", element: <SettingsPage /> },
               ],
