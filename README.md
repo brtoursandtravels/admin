@@ -39,3 +39,18 @@ the workspace root is not a package.
 
 See `ADMIN_USER_GUIDE.md` for role boundaries, publication, media, enquiry and
 account workflows.
+
+## Media previews
+
+All package, destination, gallery, blog and media-library previews use the
+authenticated `/api/v1/admin/media/:id/file` endpoint. On Vercel, the API redirects
+public seeded images to `/media/seed/...` because those files are deployed as
+static assets rather than stored in the function's runtime media directory.
+Both `vercel.json` and the Vite development proxy must therefore forward
+`/api/v1/...` and `/media/...` to the API on the same browser origin.
+
+Deploy the API and admin changes together when changing this routing. Private
+media and ordinary uploads continue through the authenticated file endpoint;
+they are not made public by this redirect. Uploaded files still require
+persistent runtime storage. The API's `npm run test:media` checks the seeded-image
+redirect, local delivery and media-access boundaries.

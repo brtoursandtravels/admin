@@ -13,6 +13,10 @@
       "destination": "https://br-tours-and-travels-api.vercel.app/api/v1/:path*"
     },
     {
+      "source": "/media/:path*",
+      "destination": "https://br-tours-and-travels-api.vercel.app/media/:path*"
+    },
+    {
       "source": "/admin/assets/:path*",
       "destination": "/assets/:path*"
     },
