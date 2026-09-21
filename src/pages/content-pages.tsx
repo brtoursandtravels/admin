@@ -13,6 +13,8 @@ import {
   type PageResponse,
 } from "../api";
 import { useAuth } from "../auth";
+import { DeleteRecordButton } from "../components/DeleteButton";
+import { BlogTaxonomyManager } from "../components/BlogTaxonomyManager";
 import { SeoFields } from "../components/SeoFields";
 import { SocialLinksForm } from "../components/SocialLinksForm";
 import { parseMenuLines } from "../lib/navigation";
@@ -229,6 +231,7 @@ export function ContentPagesPage() {
                               Archive
                             </ConfirmButton>
                           ) : null}
+                          <DeleteRecordButton resource="page" name={item.title} endpoint={`/admin/pages/${item.id}/permanent`} invalidateKeys={["content-pages"]} />
                         </div>
                       </td>
                     </tr>
@@ -545,6 +548,7 @@ export function HomepageSectionsPage() {
                               Archive
                             </ConfirmButton>
                           ) : null}
+                          <DeleteRecordButton resource="homepage section" name={item.title || item.type} endpoint={`/admin/home/sections/${item.id}/permanent`} invalidateKeys={["home-sections"]} />
                         </div>
                       </td>
                     </tr>
@@ -716,14 +720,18 @@ export function NavigationPage() {
           <h2>Saved menus</h2>
           <div className="grid [&_a]:flex [&_a]:items-center [&_a]:justify-between [&_a]:border-t [&_a]:border-admin-border-soft [&_a]:py-4 [&_a]:font-bold [&_a]:no-underline [&_a:hover]:text-admin-accent [&_button]:flex [&_button]:items-center [&_button]:justify-between [&_button]:border-0 [&_button]:border-t [&_button]:border-admin-border-soft [&_button]:bg-transparent [&_button]:py-4 [&_button]:text-left [&_button]:font-bold [&_button]:text-admin-ink">
             {menus.data?.data.map((menu) => (
+              <div key={menu.id} className="flex items-center justify-between gap-3">
               <button
                 className={menu.key === key ? "text-admin-accent!" : ""}
-                key={menu.id}
                 onClick={() => navigate(`/content/navigation/${encodeURIComponent(menu.key)}/edit`)}
               >
                 {menu.label}
                 <span>{menu.items.length} links</span>
               </button>
+              <DeleteRecordButton resource="menu" name={menu.label}
+                description="Permanently delete this menu and its links? Linked pages will be kept."
+                endpoint={`/admin/navigation/${encodeURIComponent(menu.key)}/permanent`} invalidateKeys={["navigation"]} />
+              </div>
             ))}
           </div>
           <Button
@@ -915,6 +923,9 @@ export function SettingsPage() {
                         >
                           Edit
                         </Button>
+                        <DeleteRecordButton className="ml-2" resource="setting" name={item.key}
+                          description="Permanently delete this setting? The website will use its default value or hide the related optional content."
+                          endpoint={`/admin/settings/${encodeURIComponent(item.key)}/permanent`} invalidateKeys={["settings", "page-seo"]} />
                       </td>
                     </tr>
                   ))}
@@ -1262,6 +1273,7 @@ export function EngagementPage() {
                             >
                               Archive
                             </ConfirmButton>
+                            <DeleteRecordButton resource="FAQ" name={item.question} endpoint={`/admin/faqs/${item.id}/permanent`} invalidateKeys={["faqs"]} />
                           </div>
                         </td>
                       </tr>
@@ -1426,6 +1438,7 @@ export function EngagementPage() {
                                   Archive
                                 </ConfirmButton>
                               ) : null}
+                              <DeleteRecordButton resource="testimonial" name={item.publicName} endpoint={`/admin/testimonials/${item.id}/permanent`} invalidateKeys={["testimonials"]} />
                             </div>
                           </td>
                         </tr>
@@ -1484,6 +1497,7 @@ export function EngagementPage() {
                             Archive
                           </ConfirmButton>
                         ) : null}
+                        <DeleteRecordButton resource="testimonial" name={item.publicName} endpoint={`/admin/testimonials/${item.id}/permanent`} invalidateKeys={["testimonials"]} />
                       </div>
                     </article>
                   ))}
@@ -1958,6 +1972,7 @@ export function BlogPage() {
           )
         }
       />
+      {!editorOpen ? <BlogTaxonomyManager /> : null}
       <div className={editorOpen ? "max-w-5xl" : "grid items-start gap-4"}>
         {!editorOpen ? (
         <div className="grid gap-3 rounded-2xl border border-admin-border bg-admin-surface p-3 shadow-admin-card">
@@ -2026,6 +2041,9 @@ export function BlogPage() {
                           >
                             Archive
                           </ConfirmButton>
+                          <DeleteRecordButton resource="blog article" name={item.title}
+                            description="Permanently delete this article and its related-article links? Its cover image will stay in the media library."
+                            endpoint={`/admin/blog/posts/${item.id}/permanent`} invalidateKeys={["blog-posts", "media-library"]} />
                         </div>
                       </td>
                     </tr>

@@ -50,6 +50,27 @@ Journal articles accept sanitized rich content, a public author identity, tags,
 SEO, related articles and related packages. Never paste scripts, templates,
 login emails or private customer information into public content.
 
+## Delete content
+
+Use **Delete** beside an entry, check its name in the confirmation dialog, then
+confirm. **Cancel** or Escape leaves it unchanged. The list refreshes after a
+successful deletion; failures stay in the dialog so you can retry.
+
+Deleting a package also removes its itinerary, departures and package FAQs.
+Customer enquiry history and shared media files remain. Deleting an album or
+article keeps its image files in the Media library. In-use files must be unlinked
+before deleting them from Media. Archive remains available when you want to
+retain the entry for later use.
+
+**Remove** inside an editor changes that form only: save the package or album
+to persist removed days, departures or images. Blog categories and tags can be
+deleted under **Manage categories and tags**. Page SEO's **Reset** removes saved
+meta tags and restores the page defaults.
+
+The public site refreshes cached content on subsequent visits. Refresh an
+already open page to see the change; cache refresh can take roughly a minute.
+Deleted starter content is not recreated by later deployments.
+
 ## Enquiries
 
 An enquiry is a lead, not a paid or guaranteed reservation. Search and filter in

@@ -13,6 +13,7 @@ import {
   type PageResponse,
 } from "../api";
 import { useAuth } from "../auth";
+import { DeleteButton, DeleteRecordButton } from "../components/DeleteButton";
 import type { MediaAsset, PublicationStatus, Taxonomy } from "../types";
 import {
   ActionLink,
@@ -252,6 +253,10 @@ function TaxonomyPage({
                               Archive
                             </ConfirmButton>
                           ) : null}
+                          <DeleteRecordButton resource={singular.toLowerCase()} name={item.name}
+                            description={`Permanently delete this ${singular.toLowerCase()} and remove its links from packages? The packages will be kept.`}
+                            endpoint={`/admin/${resource}/${item.id}/permanent`}
+                            invalidateKeys={[resource, "admin-packages", "admin-package", "gallery-albums"]} />
                         </div>
                       </td>
                     </tr>
@@ -483,15 +488,6 @@ export function MediaLibraryPage() {
     },
     onError: (error) => notify(getErrorMessage(error), "error"),
   });
-  const remove = useMutation({
-    mutationFn: (id: string) =>
-      apiRequest<void>(`/admin/media/${id}`, { method: "DELETE", csrfToken }),
-    onSuccess: async () => {
-      notify("Unreferenced media removed.");
-      await queryClient.invalidateQueries({ queryKey: ["media-library"] });
-    },
-    onError: (error) => notify(getErrorMessage(error), "error"),
-  });
   useEffect(() => {
     const asset = assetQuery.data?.data;
     if (!asset) return;
@@ -687,16 +683,10 @@ export function MediaLibraryPage() {
                     >
                       Edit
                     </Button>
-                    <ConfirmButton
-                      confirmText="Delete media permanently"
-                      dialogDescription="This file will be permanently removed from the media library. This cannot be undone."
-                      dialogTitle="Delete media asset?"
-                      detailText={`${asset.altText || asset.originalName} · In-use assets are protected by the API.`}
-                      disabled={remove.isPending}
-                      onConfirm={() => remove.mutateAsync(asset.id)}
-                    >
-                      Delete
-                    </ConfirmButton>
+                    <DeleteRecordButton resource="media file" name={asset.altText || asset.originalName}
+                      description="Permanently delete this file? Files still used by packages or other content must be unlinked first. This cannot be undone."
+                      endpoint={`/admin/media/${asset.id}`} invalidateKeys={["media-library", "media-asset"]}
+                      onDeleted={() => { if (query.data?.data.length === 1 && page > 1) setPage(page - 1); }} />
                   </div>
                 </div>
               </article>
@@ -982,6 +972,9 @@ export function GalleryAlbumsPage() {
                               Archive
                             </ConfirmButton>
                           ) : null}
+                          <DeleteRecordButton resource="gallery album" name={item.title}
+                            description="Permanently delete this album? Its image files will stay in the media library."
+                            endpoint={`/admin/gallery/albums/${item.id}/permanent`} invalidateKeys={["gallery-albums", "media-library"]} />
                         </div>
                       </td>
                     </tr>
@@ -1103,19 +1096,19 @@ export function GalleryAlbumsPage() {
                       >
                         ↓
                       </Button>
-                      <Button
-                        type="button"
-                        variant="danger"
-                        onClick={() =>
+                      <DeleteButton
+                        resource="album image"
+                        name={assetById.get(id)?.altText || `Image ${index + 1}`}
+                        label="Remove"
+                        description="Remove this image from the album? The file will stay in the media library. Save the album to apply this change."
+                        onDelete={() =>
                           form.setValue(
                             "mediaIds",
                             selected.filter((value) => value !== id),
                             { shouldDirty: true },
                           )
                         }
-                      >
-                        Remove
-                      </Button>
+                      />
                     </div>
                   </div>
                 ))}

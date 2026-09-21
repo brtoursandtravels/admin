@@ -249,8 +249,8 @@
 }
 
 @keyframes admin-toast-in {
-  from { opacity: 0; transform: translateX(18px) scale(0.98); }
-  to { opacity: 1; transform: translateX(0) scale(1); }
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

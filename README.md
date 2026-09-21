@@ -36,6 +36,24 @@ rules and consumes those variables; it does not define independent colours.
 Only `VITE_`-prefixed public values belong here. Database, SMTP, storage and
 session secrets belong only in the API project.
 
+## Reusable delete actions
+
+`src/components/DeleteButton.tsx` exports `DeleteButton` for local editor rows and
+`DeleteRecordButton` for saved content. The latter owns the authenticated request,
+pending state, error dialog, cache invalidation and success feedback. Pages supply
+only a resource label, record name, endpoint and affected query keys.
+
+Saved entries require confirmation before permanent deletion. Archive remains a
+separate action. Removing an itinerary day, departure or gallery image edits the
+form only; save its parent package/album to persist the change. Cancel and Escape
+do not send a request, and Enter activates only the focused dialog button.
+
+Run `npm run test:delete-ui` for mocked browser checks. Install its browser once
+with `npx playwright install chromium`. Tests start a local Vite server on port
+5192 and intercept every API request; they never delete production records.
+Set `DELETE_TEST_BASE_URL` to test the deployed UI with the same simulated API
+responses instead of starting Vite.
+
 ## Commands
 
     npm install

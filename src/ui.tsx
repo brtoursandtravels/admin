@@ -50,13 +50,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <div
-        className="fixed right-4 bottom-4 z-[100] grid max-w-[min(26rem,calc(100vw-2rem))] gap-2"
+        className="pointer-events-none fixed top-4 left-1/2 z-[100] grid w-max max-w-[min(26rem,calc(100vw-2rem))] -translate-x-1/2 justify-items-center gap-2"
         aria-live="polite"
         aria-atomic="true"
       >
         {toasts.map((toast) => (
           <div
-            className={`admin-toast rounded-[0.85rem] px-4 py-3.5 text-[0.78rem] font-bold text-white shadow-admin-dialog ${
+            className={`admin-toast max-w-full rounded-[0.85rem] px-4 py-3.5 text-center text-[0.78rem] font-bold text-white shadow-admin-dialog [overflow-wrap:anywhere] ${
               toast.tone === "success"
                 ? "bg-admin-positive"
                 : "bg-admin-negative"
@@ -92,6 +92,7 @@ export type ConfirmationOptions = {
 type ConfirmationRequest = {
   options: ConfirmationOptions;
   resolve: (confirmed: boolean) => void;
+  returnFocus: HTMLElement | null;
 };
 
 const ConfirmationContext = createContext<{
@@ -107,6 +108,7 @@ function ConfirmationModal({
 }) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const [pending, setPending] = useState(false);
+  const running = useRef(false);
   const [actionError, setActionError] = useState("");
   const options = request.options;
   const tone = options.tone ?? "danger";
@@ -118,7 +120,8 @@ function ConfirmationModal({
   } as const;
 
   const runConfirmation = useCallback(async () => {
-    if (pending) return;
+    if (running.current) return;
+    running.current = true;
     setPending(true);
     setActionError("");
     try {
@@ -126,28 +129,29 @@ function ConfirmationModal({
       onClose(true);
     } catch (error) {
       setActionError(getErrorMessage(error));
+      running.current = false;
       setPending(false);
     }
-  }, [onClose, options, pending]);
+  }, [onClose, options]);
 
   useEffect(() => {
-    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousFocus = request.returnFocus;
+    dialogRef.current?.querySelector<HTMLButtonElement>("[data-dialog-cancel]")?.focus();
+    return () => { if (previousFocus?.isConnected) previousFocus.focus(); };
+  }, [request]);
+
+  useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !pending) {
         event.preventDefault();
         onClose(false);
         return;
       }
-      if (event.key === "Enter" && !pending) {
-        event.preventDefault();
-        void runConfirmation();
-        return;
-      }
       if (event.key !== "Tab") return;
       const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
         'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
-      if (!focusable?.length) return;
+      if (!focusable?.length) { event.preventDefault(); return; }
       const first = focusable[0]!;
       const last = focusable[focusable.length - 1]!;
       if (event.shiftKey && document.activeElement === first) {
@@ -161,9 +165,8 @@ function ConfirmationModal({
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      previousFocus?.focus();
     };
-  }, [onClose, pending, runConfirmation]);
+  }, [onClose, pending]);
 
   return (
     <div
@@ -215,11 +218,10 @@ function ConfirmationModal({
           </div>
         </div>
         <div className="flex flex-col-reverse gap-2 border-t border-admin-border-soft bg-admin-surface-muted/55 px-6 py-4 sm:flex-row sm:justify-end sm:px-7">
-          <Button disabled={pending} onClick={() => onClose(false)} type="button" variant="secondary">
+          <Button autoFocus data-dialog-cancel disabled={pending} onClick={() => onClose(false)} type="button" variant="secondary">
             {options.cancelText ?? "Cancel"}
           </Button>
           <Button
-            autoFocus
             className={tone === "danger" ? "bg-admin-negative hover:not-disabled:bg-[#922f38]" : tone === "warning" ? "bg-admin-warning hover:not-disabled:brightness-90" : ""}
             disabled={pending}
             onClick={() => void runConfirmation()}
@@ -237,10 +239,11 @@ function ConfirmationModal({
 export function ConfirmationProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<ConfirmationRequest | null>(null);
   const confirm = useCallback((options: ConfirmationOptions) => {
+    const returnFocus = document.activeElement as HTMLElement | null;
     return new Promise<boolean>((resolve) => {
       setRequest((current) => {
         current?.resolve(false);
-        return { options, resolve };
+        return { options, resolve, returnFocus };
       });
     });
   }, []);

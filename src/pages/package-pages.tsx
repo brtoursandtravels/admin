@@ -18,6 +18,7 @@ import {
   type PageResponse,
 } from "../api";
 import { useAuth } from "../auth";
+import { DeleteButton, DeleteRecordButton } from "../components/DeleteButton";
 import { SeoFields } from "../components/SeoFields";
 import type { MediaAsset, PackageRecord, PackageSummary, Taxonomy } from "../types";
 import {
@@ -357,7 +358,7 @@ export function PackagesPage() {
       <PageHeader
         eyebrow="Catalogue"
         title="Tour packages"
-        description="Search, edit, preview, publish and archive database-backed packages."
+        description="Create, edit, publish, archive and delete tour packages."
         actions={
           <ActionLink to="/packages/new">
             Create package
@@ -477,6 +478,14 @@ export function PackagesPage() {
                               Archive
                             </ConfirmButton>
                           ) : null}
+                          <DeleteRecordButton
+                            resource="package"
+                            name={item.title}
+                            description="Permanently delete this package, its itinerary, departures and package FAQs? Customer enquiries and media-library files will be kept. This cannot be undone."
+                            endpoint={`/admin/packages/${item.id}/permanent`}
+                            invalidateKeys={["admin-packages", "admin-package", "packages-for-relations", "faqs", "blog-posts", "media-library"]}
+                            onDeleted={() => { if (query.data?.data.length === 1 && page > 1) updateParams({ page: String(page - 1) }); }}
+                          />
                         </div>
                       </td>
                     </tr>
@@ -840,13 +849,9 @@ export function PackageEditorPage() {
                     >
                       Move down
                     </Button>
-                    <Button
-                      type="button"
-                      variant="danger"
-                      onClick={() => itinerary.remove(index)}
-                    >
-                      Remove
-                    </Button>
+                    <DeleteButton resource="itinerary day" name={`Day ${index + 1}: ${form.watch(`itinerary.${index}.title`) || "Untitled day"}`} label="Remove"
+                      description="Remove this day from the itinerary? Save the package to apply this change."
+                      onDelete={() => itinerary.remove(index)} />
                   </div>
                   <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
                     <label>
@@ -917,13 +922,9 @@ export function PackageEditorPage() {
                 <fieldset className="relative m-0 rounded-xl border border-admin-border p-4 [&_legend]:px-1.5 [&_legend]:text-[0.72rem] [&_legend]:font-extrabold [&_legend]:uppercase [&_legend]:text-admin-accent" key={field.id}>
                   <legend>Departure {index + 1}</legend>
                   <div className="mb-3 flex flex-wrap items-center justify-end gap-1.5 [&>button]:min-h-8 [&>button]:px-2.5 [&>button]:py-1.5">
-                    <Button
-                      type="button"
-                      variant="danger"
-                      onClick={() => departures.remove(index)}
-                    >
-                      Remove
-                    </Button>
+                    <DeleteButton resource="departure" name={form.watch(`departures.${index}.startDate`) || "Unscheduled departure"} label="Remove"
+                      description="Remove this departure? Save the package to apply this change. Existing customer enquiries will be kept."
+                      onDelete={() => departures.remove(index)} />
                   </div>
                   <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
                     <label>
@@ -1078,13 +1079,9 @@ export function PackageEditorPage() {
                         >
                           ↓
                         </Button>
-                        <Button
-                          type="button"
-                          variant="danger"
-                          onClick={() => media.remove(index)}
-                        >
-                          Remove
-                        </Button>
+                        <DeleteButton resource="package image" name={asset?.altText || `Image ${index + 1}`} label="Remove"
+                          description="Remove this image from the package? The file will stay in the media library. Save the package to apply this change."
+                          onDelete={() => media.remove(index)} />
                       </div>
                     </article>
                   );

@@ -7,6 +7,7 @@ import { z } from "zod";
 import { apiRequest, type DataResponse } from "../api";
 import { useAuth } from "../auth";
 import { SeoFields } from "../components/SeoFields";
+import { DeleteRecordButton } from "../components/DeleteButton";
 import { ActionLink, BackLink, Button, Card, ErrorPanel, LoadingPanel, PageHeader, getErrorMessage, useToast, useUnsavedChanges } from "../ui";
 
 type SeoPage = { key: string; path: string; label: string; metaTitle: string; metaDescription: string };
@@ -31,6 +32,10 @@ export function PageSeoPage() {
             <p className="text-sm text-admin-ink-subtle">{item.path}</p>
             <p className="my-3 text-sm text-admin-ink-muted">{item.metaTitle || "Using the page’s default title"}</p>
             <ActionLink to={`/content/seo/${item.key}/edit`} variant="secondary">Edit meta tags</ActionLink>
+            {item.metaTitle || item.metaDescription ? <DeleteRecordButton className="ml-2"
+              resource="saved meta tags" name={item.label} label="Reset"
+              description="Delete the saved meta title and description? This page will use its default metadata. The page itself will remain available."
+              endpoint={`/admin/settings/seo.pages.${item.key}/permanent`} invalidateKeys={["settings", "page-seo"]} /> : null}
           </Card>
         ))}
       </div>
