@@ -14,7 +14,11 @@
     "preview": "vite preview --port 5173",
     "lint": "eslint src vite.config.ts --max-warnings=0",
     "typecheck": "tsc -b --pretty false",
-    "test:delete-ui": "node --test tests/delete-actions.test.mjs"
+    "test:delete-ui": "node --test tests/delete-actions.test.mjs",
+    "test:package-editor": "node --test tests/package-editor.test.mjs",
+    "test:category-editor": "node --test tests/category-editor.test.mjs",
+    "test:media-library": "node --test tests/media-library.test.mjs",
+    "test:gallery-editor": "node --test tests/gallery-editor.test.mjs"
   },
   "dependencies": {
     "@fontsource/lato": "5.3.0",

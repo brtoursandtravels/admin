@@ -42,16 +42,8 @@ const CategoriesPage = lazy(() =>
     default: module.CategoriesPage,
   })),
 );
-const MediaLibraryPage = lazy(() =>
-  import("./pages/catalogue-pages").then((module) => ({
-    default: module.MediaLibraryPage,
-  })),
-);
-const GalleryAlbumsPage = lazy(() =>
-  import("./pages/catalogue-pages").then((module) => ({
-    default: module.GalleryAlbumsPage,
-  })),
-);
+const MediaLibraryPage = lazy(() => import("./pages/MediaLibraryPage"));
+const GalleryAlbumsPage = lazy(() => import("./pages/GalleryAlbumsPage"));
 const BlogPage = lazy(() =>
   import("./pages/content-pages").then((module) => ({
     default: module.BlogPage,

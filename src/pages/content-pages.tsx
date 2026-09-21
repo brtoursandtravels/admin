@@ -1,3 +1,4 @@
+import { MediaPicker } from "../components/FileUploader";
 /* eslint-disable react-hooks/incompatible-library */
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,7 +19,7 @@ import { BlogTaxonomyManager } from "../components/BlogTaxonomyManager";
 import { SeoFields } from "../components/SeoFields";
 import { SocialLinksForm } from "../components/SocialLinksForm";
 import { parseMenuLines } from "../lib/navigation";
-import type { MediaAsset, PackageSummary, PublicationStatus } from "../types";
+import type { PackageSummary, PublicationStatus } from "../types";
 import {
   ActionLink,
   BackLink,
@@ -1827,12 +1828,6 @@ export function BlogPage() {
       apiRequest<PageResponse<PackageSummary>>("/admin/packages?view=summary&pageSize=100"),
     enabled: editorOpen,
   });
-  const media = useQuery({
-    queryKey: ["media-library", "blog"],
-    queryFn: () =>
-      apiRequest<PageResponse<MediaAsset>>("/admin/media?pageSize=100"),
-    enabled: editorOpen,
-  });
   const save = useMutation({
     mutationFn: (value: BlogForm) =>
       apiRequest<DataResponse<BlogPost>>(
@@ -2098,19 +2093,7 @@ export function BlogPage() {
                   ))}
                 </select>
               </label>
-              <label>
-                Cover media
-                <select {...form.register("coverMediaId")}>
-                  <option value="">No cover</option>
-                  {media.data?.data
-                    .filter((item) => item.mimeType.startsWith("image/"))
-                    .map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.altText}
-                      </option>
-                    ))}
-                </select>
-              </label>
+              <MediaPicker label="Blog featured image" ids={form.watch("coverMediaId") ? [form.watch("coverMediaId")] : []} onChange={assets => form.setValue("coverMediaId", assets[0]?.id ?? "", { shouldDirty: true })} disabled={save.isPending} />
               <label>
                 Tags
                 <span className="text-[0.68rem] font-normal text-admin-ink-subtle">

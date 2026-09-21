@@ -500,7 +500,7 @@ export function ErrorPanel({
         Could not load this section
       </strong>
       <p className="text-[0.85rem] leading-6">{detail}</p>
-      {retry ? <Button onClick={retry}>Retry</Button> : null}
+      {retry ? <Button type="button" onClick={retry}>Retry</Button> : null}
     </div>
   );
 }

@@ -70,12 +70,7 @@ export type PackageRecord = {
   cancellationRules: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
-  brochure: {
-    id: string;
-    originalName: string;
-    mimeType: string;
-    visibility: "PUBLIC" | "PRIVATE";
-  } | null;
+  brochure: MediaAsset | null;
   status: PublicationStatus;
   publishedAt: string | null;
   isFeatured: boolean;
@@ -96,6 +91,8 @@ export type PackageRecord = {
     activities: string[];
     meals: string | null;
     accommodation: string | null;
+    imageMediaId?: string | null;
+    image?: MediaAsset | null;
   }>;
   departures: Array<{
     id?: string;
@@ -103,7 +100,8 @@ export type PackageRecord = {
     endDate: string;
     pricePerPerson: string | null;
     currency: string;
-    status: "SCHEDULED" | "CANCELLED" | "COMPLETED";
+    status: "SCHEDULED" | "FILLING_FAST" | "CANCELLED" | "COMPLETED";
+    seatsAvailable?: number | null;
     note: string | null;
   }>;
   media: Array<MediaAsset & { sortOrder: number; isCover: boolean }>;

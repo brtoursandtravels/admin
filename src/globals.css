@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@layer components {
+  .editor-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+  .editor-field { display: grid; gap: .4rem; min-width: 0; font-size: .85rem; font-weight: 700; color: var(--color-admin-brand-deep); }
+  @media (max-width: 680px) { .editor-grid { grid-template-columns: minmax(0, 1fr); } }
+}
+
 @theme {
   --color-admin-canvas: #f4f7f6;
   --color-admin-surface: #ffffff;
