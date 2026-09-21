@@ -21,6 +21,14 @@
       "destination": "/assets/:path*"
     },
     {
+      "source": "/admin/br-logo.png",
+      "destination": "/br-logo.png"
+    },
+    {
+      "source": "/admin/favicon.png",
+      "destination": "/favicon.png"
+    },
+    {
       "source": "/admin",
       "destination": "/index.html"
     },

@@ -69,6 +69,7 @@ export function DashboardPage() {
   const query = useQuery({
     queryKey: ["dashboard"],
     queryFn: () => apiRequest<DataResponse<Dashboard>>("/admin/dashboard"),
+    staleTime: 30_000,
   });
   return (
     <>

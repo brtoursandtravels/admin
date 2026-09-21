@@ -834,6 +834,7 @@ export function GalleryAlbumsPage() {
     queryKey: ["media-library", "album"],
     queryFn: () =>
       apiRequest<PageResponse<MediaAsset>>("/admin/media?pageSize=100"),
+    enabled: editorOpen,
   });
   const save = useMutation({
     mutationFn: (values: AlbumForm) =>

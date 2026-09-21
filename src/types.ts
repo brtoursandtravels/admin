@@ -44,6 +44,11 @@ export type MediaAsset = {
   updatedAt: string;
 };
 
+export type PackageSummary = Pick<PackageRecord,
+  "id" | "slug" | "title" | "status" | "days" | "nights" | "basePrice" |
+  "currency" | "priceBasis" | "isDemo" | "updatedAt"
+>;
+
 export type PackageRecord = {
   id: string;
   slug: string;

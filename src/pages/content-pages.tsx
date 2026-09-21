@@ -16,7 +16,7 @@ import { useAuth } from "../auth";
 import { SeoFields } from "../components/SeoFields";
 import { SocialLinksForm } from "../components/SocialLinksForm";
 import { parseMenuLines } from "../lib/navigation";
-import type { MediaAsset, PackageRecord, PublicationStatus } from "../types";
+import type { MediaAsset, PackageSummary, PublicationStatus } from "../types";
 import {
   ActionLink,
   BackLink,
@@ -1069,7 +1069,7 @@ export function EngagementPage() {
   const packages = useQuery({
     queryKey: ["packages-for-relations"],
     queryFn: () =>
-      apiRequest<PageResponse<PackageRecord>>("/admin/packages?pageSize=100"),
+      apiRequest<PageResponse<PackageSummary>>("/admin/packages?view=summary&pageSize=100"),
   });
   const saveFaq = useMutation({
     mutationFn: () =>
@@ -1714,6 +1714,7 @@ type BlogPost = {
   contentHtml: string;
   categoryId: string | null;
   coverMediaId: string | null;
+  coverMedia: { id: string; altText: string } | null;
   publicAuthorName: string | null;
   publicAuthorBio: string | null;
   seoTitle: string | null;
@@ -1804,16 +1805,19 @@ export function BlogPage() {
   const tags = useQuery({
     queryKey: ["blog-tags"],
     queryFn: () => apiRequest<DataResponse<BlogTag[]>>("/admin/blog/tags"),
+    enabled: editorOpen,
   });
   const packages = useQuery({
     queryKey: ["packages-for-relations"],
     queryFn: () =>
-      apiRequest<PageResponse<PackageRecord>>("/admin/packages?pageSize=100"),
+      apiRequest<PageResponse<PackageSummary>>("/admin/packages?view=summary&pageSize=100"),
+    enabled: editorOpen,
   });
   const media = useQuery({
     queryKey: ["media-library", "blog"],
     queryFn: () =>
       apiRequest<PageResponse<MediaAsset>>("/admin/media?pageSize=100"),
+    enabled: editorOpen,
   });
   const save = useMutation({
     mutationFn: (value: BlogForm) =>
@@ -1933,9 +1937,7 @@ export function BlogPage() {
       ))}
     </select>
   );
-  const cover = preview?.coverMediaId
-    ? media.data?.data.find((item) => item.id === preview.coverMediaId)
-    : null;
+  const cover = preview?.coverMedia ?? null;
   const visiblePosts = (posts.data?.data ?? []).filter((item) => {
     const matchesQuery =
       !postQuery ||

@@ -19,7 +19,7 @@ import {
 } from "../api";
 import { useAuth } from "../auth";
 import { SeoFields } from "../components/SeoFields";
-import type { MediaAsset, PackageRecord, Taxonomy } from "../types";
+import type { MediaAsset, PackageRecord, PackageSummary, Taxonomy } from "../types";
 import {
   ActionLink,
   Button,
@@ -303,10 +303,10 @@ export function PackagesPage() {
   const page = Number(params.get("page") ?? 1);
   const pageSize = Number(params.get("pageSize") ?? 25);
   const query = useQuery({
-    queryKey: ["admin-packages", q, status, page, pageSize],
+    queryKey: ["admin-packages", "summary", q, status, page, pageSize],
     queryFn: () =>
-      apiRequest<PageResponse<PackageRecord>>(
-        `/admin/packages?${new URLSearchParams({ ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(page), pageSize: String(pageSize) })}`,
+      apiRequest<PageResponse<PackageSummary>>(
+        `/admin/packages?${new URLSearchParams({ view: "summary", ...(q ? { q } : {}), ...(status ? { status } : {}), page: String(page), pageSize: String(pageSize) })}`,
       ),
   });
   const archive = useMutation({

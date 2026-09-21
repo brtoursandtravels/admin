@@ -4,6 +4,17 @@ Independent React 19 + Vite 8 administration application. It is mounted at
 `/admin/`; Vite's base, React Router's basename and the supplied Nginx fallback
 all preserve nested-route refreshes.
 
+Vercel serves the build's public files at the root. Keep the explicit
+`/admin/br-logo.png` and `/admin/favicon.png` rewrites before the admin SPA
+fallback so both login logos and the sidebar logo receive images, not HTML.
+Authenticated session restoration uses the user included in `/auth/csrf`, with
+an `/auth/me` fallback for older API deployments.
+
+Package tables and relation selectors request `/admin/packages?view=summary`;
+edit, preview and duplication continue to load the full individual package.
+Blog and gallery editor libraries load when the editor opens. Deploy the API
+before this admin version so the compact package response is available.
+
 The application is connected to the Express API and includes session login,
 password reset/profile management, role-based navigation and route guards,
 live dashboard analytics, package/taxonomy/media/gallery management, the page

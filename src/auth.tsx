@@ -30,7 +30,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function preAuthCsrf() {
   return apiRequest<
-    DataResponse<{ csrfToken: string; authenticated: boolean }>
+    DataResponse<{ csrfToken: string; authenticated: boolean; user?: AdminUser | null }>
   >("/auth/csrf", { authenticated: false });
 }
 
@@ -45,9 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const csrf = await preAuthCsrf();
       setCsrfToken(csrf.data.csrfToken);
       if (csrf.data.authenticated) {
-        const me =
-          await apiRequest<DataResponse<{ user: AdminUser }>>("/auth/me");
-        setUser(me.data.user);
+        // Older API deployments do not include the user in the CSRF response.
+        const user = csrf.data.user ?? (
+          await apiRequest<DataResponse<{ user: AdminUser }>>("/auth/me")
+        ).data.user;
+        setUser(user);
+      } else {
+        setUser(null);
       }
     } catch {
       setUser(null);
