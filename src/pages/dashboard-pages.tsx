@@ -1,6 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
-  BellRing,
   BookOpenText,
   CalendarDays,
   FileText,
@@ -29,7 +28,6 @@ type Dashboard = {
   publishedPackages: number;
   upcomingDepartures: number;
   newEnquiries: number;
-  failedNotifications: number;
   draftPosts: number;
   publishedPosts: number;
   enquiryStatusCounts: Record<string, number>;
@@ -99,12 +97,11 @@ export function DashboardPage() {
               {user?.role !== "CONTENT_EDITOR" ? <Link to="/enquiries"><Inbox size={15} />View new enquiries</Link> : null}
             </div>
           </section>
-          <div className="mb-5 grid grid-cols-5 gap-4 max-[1350px]:grid-cols-3 max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
+          <div className="mb-5 grid grid-cols-4 gap-4 max-[1350px]:grid-cols-2 max-[560px]:grid-cols-1">
             <MetricCard icon={BookOpenText} label="Active packages" value={query.data.data.packages} detail={`${query.data.data.publishedPackages} currently published`} />
             <MetricCard icon={Inbox} label="New enquiries" value={query.data.data.newEnquiries} detail="Awaiting first response" />
             <MetricCard icon={CalendarDays} label="Upcoming departures" value={query.data.data.upcomingDepartures} detail="Scheduled future options" />
             <MetricCard icon={FileText} label="Published articles" value={query.data.data.publishedPosts} detail={`${query.data.data.draftPosts} drafts remain private`} />
-            <MetricCard icon={BellRing} label="Failed notifications" value={query.data.data.failedNotifications} detail="Review delivery and retry" />
           </div>
           <div className="grid grid-cols-[2fr_1fr] gap-4 max-[900px]:grid-cols-1">
             <Card>

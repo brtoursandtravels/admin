@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Bell,
   BookOpenText,
   ChevronDown,
   ChevronRight,
@@ -33,7 +32,7 @@ import { useAuth } from "./auth";
 import { env } from "./env";
 import type { Role } from "./types";
 
-type BadgeKey = "enquiries" | "notifications";
+type BadgeKey = "enquiries";
 type NavItem = {
   to: string;
   label: string;
@@ -42,46 +41,21 @@ type NavItem = {
   badge?: BadgeKey;
 };
 
-const navGroups: Array<{ label: string; items: NavItem[] }> = [
-  {
-    label: "Workspace",
-    items: [{ to: "/", label: "Overview", icon: Gauge }],
-  },
-  {
-    label: "Catalogue",
-    items: [
-      { to: "/packages", label: "Tour packages", icon: BookOpenText, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/categories", label: "Categories", icon: Tags, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/media", label: "Media library", icon: Images, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/gallery", label: "Gallery albums", icon: GalleryHorizontal, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-    ],
-  },
-  {
-    label: "Website",
-    items: [
-      { to: "/blog", label: "Blog", icon: FileStack, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/content/pages", label: "Pages & policies", icon: ScrollText, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/content/seo", label: "Page SEO", icon: Search, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/content/engagement", label: "FAQs & testimonials", icon: MessageSquareQuote, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-      { to: "/content/settings", label: "Public settings", icon: Settings2, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
-    ],
-  },
-  {
-    label: "Sales",
-    items: [
-      { to: "/enquiries", label: "Enquiries", icon: Inbox, roles: ["SUPER_ADMIN", "SALES_AGENT"], badge: "enquiries" },
-      { to: "/notifications", label: "Notifications", icon: Bell, roles: ["SUPER_ADMIN", "SALES_AGENT"], badge: "notifications" },
-    ],
-  },
-  {
-    label: "Administration",
-    items: [
-      { to: "/users", label: "Staff users", icon: Users, roles: ["SUPER_ADMIN"] },
-      { to: "/audit", label: "Activity logs", icon: ScrollText, roles: ["SUPER_ADMIN"] },
-      { to: "/profile", label: "My profile", icon: CircleUserRound },
-      { to: "/system/environment", label: "Environment", icon: ServerCog },
-    ],
-  },
+const navItems: NavItem[] = [
+  { to: "/", label: "Overview", icon: Gauge },
+  { to: "/packages", label: "Tour packages", icon: BookOpenText, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/categories", label: "Categories", icon: Tags, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/media", label: "Media library", icon: Images, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/gallery", label: "Gallery albums", icon: GalleryHorizontal, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/blog", label: "Blog", icon: FileStack, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/content/seo", label: "Page SEO", icon: Search, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/content/engagement", label: "FAQs & testimonials", icon: MessageSquareQuote, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/content/settings", label: "Public settings", icon: Settings2, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
+  { to: "/enquiries", label: "Enquiries", icon: Inbox, roles: ["SUPER_ADMIN", "SALES_AGENT"], badge: "enquiries" },
+  { to: "/users", label: "Staff users", icon: Users, roles: ["SUPER_ADMIN"] },
+  { to: "/audit", label: "Activity logs", icon: ScrollText, roles: ["SUPER_ADMIN"] },
+  { to: "/profile", label: "My profile", icon: CircleUserRound },
+  { to: "/system/environment", label: "Environment", icon: ServerCog },
 ];
 
 const quickActions: Array<{ to: string; label: string; icon: LucideIcon; roles: Role[] }> = [
@@ -90,7 +64,7 @@ const quickActions: Array<{ to: string; label: string; icon: LucideIcon; roles: 
   { to: "/media/new", label: "Upload media", icon: Images, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
 ];
 
-type ShellDashboard = { newEnquiries: number; failedNotifications: number };
+type ShellDashboard = { newEnquiries: number };
 
 export function AppShell() {
   const { user, logout } = useAuth();
@@ -108,23 +82,14 @@ export function AppShell() {
     queryFn: () => apiRequest<DataResponse<ShellDashboard>>("/admin/dashboard"),
     staleTime: 30_000,
   });
-  const visibleGroups = useMemo(
-    () =>
-      navGroups
-        .map((group) => ({
-          ...group,
-          items: group.items.filter(
-            (item) => !item.roles || (user && item.roles.includes(user.role)),
-          ),
-        }))
-        .filter((group) => group.items.length),
+  const allNavigation = useMemo(
+    () => navItems.filter((item) => !item.roles || (user && item.roles.includes(user.role))),
     [user],
   );
   const visibleActions = useMemo(
     () => quickActions.filter((action) => user && action.roles.includes(user.role)),
     [user],
   );
-  const allNavigation = useMemo(() => visibleGroups.flatMap((group) => group.items), [visibleGroups]);
   const currentItem = useMemo(
     () =>
       [...allNavigation]
@@ -150,7 +115,6 @@ export function AppShell() {
   }, [allNavigation, commandQuery]);
   const badges: Record<BadgeKey, number> = {
     enquiries: dashboard.data?.data.newEnquiries ?? 0,
-    notifications: dashboard.data?.data.failedNotifications ?? 0,
   };
 
   useEffect(() => {
@@ -216,46 +180,40 @@ export function AppShell() {
         </div>
 
         <nav aria-label="Admin sections" className={`min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-5 ${collapsed ? "lg:px-2" : "px-3"}`}>
-          {visibleGroups.map((group) => (
-            <div className="mb-6 last:mb-0" key={group.label}>
-              <p className={`mb-2 px-3 text-[0.68rem] font-black uppercase tracking-[0.15em] text-admin-on-brand-muted ${collapsed ? "lg:sr-only" : ""}`}>
-                {group.label}
-              </p>
-              <div className="grid gap-1">
-                {group.items.map((item) => {
-                  const Icon = item.icon;
-                  const count = item.badge ? badges[item.badge] : 0;
-                  return (
-                    <NavLink
-                      aria-label={collapsed ? item.label : undefined}
-                      className={({ isActive }) =>
-                        `group relative flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-[0.875rem] font-bold no-underline transition duration-200 ${collapsed ? "lg:justify-center lg:px-2" : ""} ${isActive ? "bg-white/12 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)]" : "text-admin-on-brand hover:bg-white/7 hover:text-white"}`
-                      }
-                      end={item.to === "/"}
-                      key={item.to}
-                      onClick={() => setMenuOpen(false)}
-                      title={collapsed ? item.label : undefined}
-                      to={item.to}
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <span className={`absolute inset-y-2 left-0 w-0.5 rounded-full transition ${isActive ? "bg-admin-accent" : "bg-transparent"}`} />
-                          <Icon className={isActive ? "text-admin-accent-light" : "text-admin-on-brand-muted group-hover:text-white"} size={18} strokeWidth={1.9} aria-hidden="true" />
-                          <span className={`min-w-0 flex-1 truncate ${collapsed ? "lg:hidden" : ""}`}>{item.label}</span>
-                          {count > 0 ? (
-                            <span className={`${collapsed ? "absolute top-0.5 right-0.5 lg:flex" : ""} inline-flex min-w-5 items-center justify-center rounded-full bg-admin-accent px-1.5 py-0.5 text-[0.6rem] font-black text-white`}>
-                              {count > 99 ? "99+" : count}
-                            </span>
-                          ) : null}
-                          <ChevronRight className={`transition ${collapsed ? "lg:hidden" : ""} ${isActive ? "translate-x-0 opacity-70" : "-translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-60"}`} size={15} aria-hidden="true" />
-                        </>
-                      )}
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+          <ul className="m-0 grid list-none gap-1 p-0">
+            {allNavigation.map((item) => {
+              const Icon = item.icon;
+              const count = item.badge ? badges[item.badge] : 0;
+              return (
+                <li key={item.to}>
+                  <NavLink
+                    aria-label={collapsed ? item.label : undefined}
+                    className={({ isActive }) =>
+                      `group relative flex min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-[0.875rem] font-bold no-underline transition duration-200 ${collapsed ? "lg:justify-center lg:px-2" : ""} ${isActive ? "bg-white/12 text-white shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)]" : "text-admin-on-brand hover:bg-white/7 hover:text-white"}`
+                    }
+                    end={item.to === "/"}
+                    onClick={() => setMenuOpen(false)}
+                    title={collapsed ? item.label : undefined}
+                    to={item.to}
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <span className={`absolute inset-y-2 left-0 w-0.5 rounded-full transition ${isActive ? "bg-admin-accent" : "bg-transparent"}`} />
+                        <Icon className={isActive ? "text-admin-accent-light" : "text-admin-on-brand-muted group-hover:text-white"} size={18} strokeWidth={1.9} aria-hidden="true" />
+                        <span className={`min-w-0 flex-1 truncate ${collapsed ? "lg:hidden" : ""}`}>{item.label}</span>
+                        {count > 0 ? (
+                          <span className={`${collapsed ? "absolute top-0.5 right-0.5 lg:flex" : ""} inline-flex min-w-5 items-center justify-center rounded-full bg-admin-accent px-1.5 py-0.5 text-[0.6rem] font-black text-white`}>
+                            {count > 99 ? "99+" : count}
+                          </span>
+                        ) : null}
+                        <ChevronRight className={`transition ${collapsed ? "lg:hidden" : ""} ${isActive ? "translate-x-0 opacity-70" : "-translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-60"}`} size={15} aria-hidden="true" />
+                      </>
+                    )}
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
         </nav>
 
         <div className="border-t border-white/8 p-3">

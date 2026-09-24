@@ -44,42 +44,20 @@ const CategoriesPage = lazy(() =>
 );
 const MediaLibraryPage = lazy(() => import("./pages/MediaLibraryPage"));
 const GalleryAlbumsPage = lazy(() => import("./pages/GalleryAlbumsPage"));
-const BlogPage = lazy(() =>
-  import("./pages/content-pages").then((module) => ({
-    default: module.BlogPage,
-  })),
-);
-const ContentPagesPage = lazy(() =>
-  import("./pages/content-pages").then((module) => ({
-    default: module.ContentPagesPage,
-  })),
-);
+const BlogPage = lazy(() => import("./pages/BlogPage"));
 const EngagementPage = lazy(() =>
   import("./pages/content-pages").then((module) => ({
     default: module.EngagementPage,
   })),
 );
-const SettingsPage = lazy(() =>
-  import("./pages/content-pages").then((module) => ({
-    default: module.SettingsPage,
-  })),
-);
+const SettingsPage = lazy(() => import("./pages/PublicSettingsPage"));
 const PageSeoPage = lazy(() =>
   import("./pages/seo-pages").then((module) => ({ default: module.PageSeoPage })),
 );
-const EnquiriesPage = lazy(() =>
-  import("./pages/sales-pages").then((module) => ({
-    default: module.EnquiriesPage,
-  })),
-);
+const EnquiriesPage = lazy(() => import("./pages/EnquiriesPage"));
 const EnquiryDetailPage = lazy(() =>
   import("./pages/sales-pages").then((module) => ({
     default: module.EnquiryDetailPage,
-  })),
-);
-const NotificationsPage = lazy(() =>
-  import("./pages/sales-pages").then((module) => ({
-    default: module.NotificationsPage,
   })),
 );
 const UsersPage = lazy(() =>
@@ -135,9 +113,7 @@ const router = createBrowserRouter(
                 { path: "blog", element: <BlogPage /> },
                 { path: "blog/new", element: <BlogPage /> },
                 { path: "blog/:id/edit", element: <BlogPage /> },
-                { path: "content/pages", element: <ContentPagesPage /> },
-                { path: "content/pages/new", element: <ContentPagesPage /> },
-                { path: "content/pages/:id/edit", element: <ContentPagesPage /> },
+                { path: "content/pages/*", element: <Navigate to="/" replace /> },
                 { path: "content/home/*", element: <Navigate to="/content/settings" replace /> },
                 { path: "content/navigation/*", element: <Navigate to="/content/settings" replace /> },
                 { path: "content/engagement", element: <EngagementPage /> },
@@ -148,8 +124,8 @@ const router = createBrowserRouter(
                 { path: "content/settings", element: <SettingsPage /> },
                 { path: "content/seo", element: <PageSeoPage /> },
                 { path: "content/seo/:key/edit", element: <PageSeoPage /> },
-                { path: "content/settings/new", element: <SettingsPage /> },
-                { path: "content/settings/:key/edit", element: <SettingsPage /> },
+                { path: "content/settings/new", element: <Navigate to="/content/settings" replace /> },
+                { path: "content/settings/:key/edit", element: <Navigate to="/content/settings" replace /> },
               ],
             },
             {
@@ -157,7 +133,7 @@ const router = createBrowserRouter(
               children: [
                 { path: "enquiries", element: <EnquiriesPage /> },
                 { path: "enquiries/:id", element: <EnquiryDetailPage /> },
-                { path: "notifications", element: <NotificationsPage /> },
+                { path: "notifications", element: <Navigate to="/enquiries" replace /> },
               ],
             },
             {

@@ -1,3 +1,4 @@
+import { AdminSelect } from "./AdminSelect";
 import { useEffect, useRef, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, FileText, FolderOpen, Star } from "lucide-react";
@@ -195,7 +196,7 @@ export function FileUploader({ multiple = false, maxFiles = 10, accept = "image/
             <label className="grid gap-1 text-sm">Alternative text<input className="admin-control" value={altText} maxLength={300} onChange={event => setAltText(event.target.value)} /></label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm">Caption<textarea className="admin-control" value={caption} maxLength={500} rows={2} onChange={event => setCaption(event.target.value)} /></label>
-              <label className="grid content-start gap-1 text-sm">Visibility<select aria-label="Visibility" className="admin-control" value={visibility} onChange={event => setVisibility(event.target.value as MediaAsset["visibility"])}><option value="PUBLIC">Public</option><option value="PRIVATE">Private</option></select></label>
+              <label className="grid content-start gap-1 text-sm">Visibility<AdminSelect aria-label="Visibility" className="admin-control" value={visibility} onValueChange={selectedValue => setVisibility(selectedValue as MediaAsset["visibility"])}><option value="PUBLIC">Public</option><option value="PRIVATE">Private</option></AdminSelect></label>
             </div>
             <Button type="button" disabled={locked} onClick={() => void saveMetadata()}>Save file details</Button>
           </fieldset>

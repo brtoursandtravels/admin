@@ -18,12 +18,19 @@
     "test:package-editor": "node --test tests/package-editor.test.mjs",
     "test:category-editor": "node --test tests/category-editor.test.mjs",
     "test:media-library": "node --test tests/media-library.test.mjs",
-    "test:gallery-editor": "node --test tests/gallery-editor.test.mjs"
+    "test:gallery-editor": "node --test tests/gallery-editor.test.mjs",
+    "test:blog-editor": "node --test tests/blog-editor.test.mjs",
+    "test:public-settings": "node --test tests/public-settings.test.mjs",
+    "test:inboxes": "node --test tests/inbox-pages.test.mjs"
   },
   "dependencies": {
     "@fontsource/lato": "5.3.0",
     "@hookform/resolvers": "5.9.1",
+    "@radix-ui/react-select": "2.3.7",
     "@tanstack/react-query": "5.102.8",
+    "@tiptap/pm": "3.31.3",
+    "@tiptap/react": "3.31.3",
+    "@tiptap/starter-kit": "3.31.3",
     "lucide-react": "1.38.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",

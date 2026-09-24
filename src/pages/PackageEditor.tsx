@@ -1,3 +1,4 @@
+import { FormSelect } from "../components/FormSelect";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
@@ -150,7 +151,7 @@ export function PackageEditorPage() {
           <label className="editor-field">Days<input className="admin-control" aria-label="Days" type="number" min={1} max={90} {...form.register("days", { onChange: event => { if (!nightsManual) form.setValue("nights", String(Math.max(0, Number(event.target.value) - 1)), { shouldDirty: true }); } })} /><FieldError message={form.formState.errors.days?.message} /></label>
           <div><label className="editor-field">Nights<input className="admin-control" aria-label="Nights" type="number" min={0} max={89} {...form.register("nights", { onChange: () => setNightsManual(true) })} /><FieldError message={form.formState.errors.nights?.message} /></label>{nightsManual ? <Button type="button" variant="ghost" onClick={() => { setNightsManual(false); setText("nights", String(Math.max(0, Number(values.days) - 1))); }}>Sync with days</Button> : null}</div>
           {input("startingCity", "Starting city")}
-          <label className="editor-field">Currency<select className="admin-control" {...form.register("currency")}>{[...new Set([values.currency, "INR", "USD", "EUR", "GBP", "AED"])].map(currency => <option key={currency}>{currency}</option>)}</select></label>
+          <label className="editor-field">Currency<FormSelect className="admin-control" control={form.control} name={"currency"}>{[...new Set([values.currency, "INR", "USD", "EUR", "GBP", "AED"])].map(currency => <option key={currency}>{currency}</option>)}</FormSelect></label>
         </div>
         <fieldset><legend className="mb-2 text-sm font-bold">Pricing basis</legend><div className="flex flex-wrap gap-2">{([["PER_PERSON", "Per person"], ["PER_GROUP", "Per group"], ["PER_ROOM", "Per room"], ["ON_REQUEST", "On request"]] as const).map(([basis, label]) => <label key={basis} className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm ${values.priceBasis === basis ? "border-admin-brand bg-admin-brand-soft" : "border-admin-border"}`}><input type="radio" value={basis} {...form.register("priceBasis")} />{label}</label>)}</div></fieldset>
         {values.priceBasis !== "ON_REQUEST" ? input("basePrice", "Base price", "number") : null}
@@ -203,7 +204,7 @@ export function PackageEditorPage() {
               <label className="editor-field">End date<input className="admin-control" type="date" {...form.register(`departures.${i}.endDate`)} /><FieldError message={form.formState.errors.departures?.[i]?.endDate?.message} /></label>
               <label className="editor-field">Price override (optional)<input className="admin-control" type="number" min={0} {...form.register(`departures.${i}.pricePerPerson`)} /><FieldError message={form.formState.errors.departures?.[i]?.pricePerPerson?.message} /></label>
               <label className="editor-field">Currency<input className="admin-control" maxLength={3} {...form.register(`departures.${i}.currency`)} /></label>
-              <label className="editor-field">Status<select className="admin-control" aria-label="Status" {...form.register(`departures.${i}.status`)}><option value="SCHEDULED">Scheduled</option><option value="FILLING_FAST">Filling fast</option><option value="COMPLETED">Completed</option><option value="CANCELLED">Cancelled</option></select></label>
+              <label className="editor-field">Status<FormSelect className="admin-control" aria-label="Status" control={form.control} name={`departures.${i}.status`}><option value="SCHEDULED">Scheduled</option><option value="FILLING_FAST">Filling fast</option><option value="COMPLETED">Completed</option><option value="CANCELLED">Cancelled</option></FormSelect></label>
               <label className="editor-field">Seats available (optional)<input className="admin-control" type="number" min={0} {...form.register(`departures.${i}.seatsAvailable`)} /><FieldError message={form.formState.errors.departures?.[i]?.seatsAvailable?.message} /></label>
               <label className="editor-field">Departure note<input className="admin-control" maxLength={500} {...form.register(`departures.${i}.note`)} /></label>
             </div>

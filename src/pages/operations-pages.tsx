@@ -1,3 +1,4 @@
+import { AdminSelect } from "../components/AdminSelect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -241,42 +242,42 @@ export function UsersPage() {
             </label>
             <label>
               Role
-              <select
+              <AdminSelect
                 value={draft.role}
-                onChange={(event) =>
+                onValueChange={(selectedValue) =>
                   setDraft((value) => ({
                     ...value,
-                    role: event.target.value as Role,
+                    role: selectedValue as Role,
                   }))
                 }
               >
                 {roles.map((role) => (
                   <option key={role}>{role}</option>
                 ))}
-              </select>
+              </AdminSelect>
               <span className="text-[0.68rem] font-normal leading-5 text-admin-ink-subtle">
                 {draft.role === "SUPER_ADMIN"
                   ? "Full catalogue, sales, staff and security access."
                   : draft.role === "CONTENT_EDITOR"
                     ? "Can manage packages and public website content."
-                    : "Can manage enquiries and notification follow-up."}
+                    : "Can manage enquiries and traveller follow-up."}
               </span>
             </label>
             {editing ? (
               <label>
                 Status
-                <select
+                <AdminSelect
                   value={draft.status}
-                  onChange={(event) =>
+                  onValueChange={(selectedValue) =>
                     setDraft((value) => ({
                       ...value,
-                      status: event.target.value as UserDraft["status"],
+                      status: selectedValue as UserDraft["status"],
                     }))
                   }
                 >
                   <option>ACTIVE</option>
                   <option>DISABLED</option>
-                </select>
+                </AdminSelect>
                 <span className="text-[0.68rem] font-normal text-admin-ink-subtle">
                   Disabling a user or changing their role revokes affected
                   sessions.

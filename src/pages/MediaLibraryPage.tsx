@@ -1,3 +1,4 @@
+import { AdminSelect } from "../components/AdminSelect";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -70,7 +71,7 @@ function MediaList() {
         <label className="grid min-w-0 flex-1 basis-64 gap-2 text-sm font-bold">Search library
           <span className="relative"><Search size={17} className="pointer-events-none absolute top-3.5 left-3 text-admin-ink-subtle" aria-hidden="true" /><input className="admin-control pl-10! pr-10!" placeholder="Search all filenames and alt text" maxLength={200} value={search} onChange={event => setSearch(event.target.value)} />{search && <button type="button" aria-label="Clear search" className="absolute top-2 right-2 rounded-lg p-2 hover:bg-admin-surface-muted" onClick={() => setSearch("")}><X size={16} /></button>}</span>
         </label>
-        <label className="grid min-w-44 gap-2 text-sm font-bold">Visibility<select aria-label="Visibility" className="admin-control" value={visibility} onChange={event => { setVisibility(event.target.value); setPage(1); }}><option value="">All visibility</option><option value="PUBLIC">Public</option><option value="PRIVATE">Private</option></select></label>
+        <label className="grid min-w-44 gap-2 text-sm font-bold">Visibility<AdminSelect aria-label="Visibility" className="admin-control" value={visibility} onValueChange={selectedValue => { setVisibility(selectedValue); setPage(1); }}><option value="">All visibility</option><option value="PUBLIC">Public</option><option value="PRIVATE">Private</option></AdminSelect></label>
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-admin-border-soft pt-4">
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="File type">{[{ value: "", label: "All files", Icon: null }, { value: "image", label: "Photos", Icon: Image }, { value: "pdf", label: "PDF brochures", Icon: FileText }].map(({ value, label, Icon }) => <button key={value} type="button" aria-pressed={kind === value} onClick={() => { setKind(value); setPage(1); }} className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold transition-colors ${kind === value ? "bg-admin-brand text-white" : "bg-admin-surface-muted text-admin-ink-muted hover:bg-admin-brand-soft"}`}>{Icon && <Icon size={16} aria-hidden="true" />}{label}</button>)}</div>

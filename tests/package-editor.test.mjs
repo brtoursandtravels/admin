@@ -192,7 +192,7 @@ test("file metadata, retry after failed upload, date calculation and mobile layo
   await page.getByRole("tab", { name: "Departures", exact: true }).click();
   await page.getByRole("button", { name: "Fixed departures", exact: true }).click(); await page.getByRole("button", { name: "Add departure", exact: true }).click();
   await page.getByLabel("Start date", { exact: true }).fill("2027-04-01"); assert.equal(await page.getByLabel("End date", { exact: true }).inputValue(), "2027-04-02");
-  await page.getByLabel("Status", { exact: true }).selectOption("FILLING_FAST"); await page.getByLabel("Seats available (optional)").fill("4");
+  await page.getByLabel("Status", { exact: true }).click(); await page.getByRole("option", { name: "Filling fast", exact: true }).click(); await page.getByLabel("Seats available (optional)").fill("4");
   await page.setViewportSize({ width: 390, height: 844 });
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
   await page.getByRole("button", { name: "Save changes", exact: true }).click(); await page.getByText("Package saved.", { exact: true }).waitFor();
@@ -225,7 +225,7 @@ test("replacement errors are visible; retry preserves metadata, gallery order an
   const editor = page.getByRole("dialog", { name: "Edit file", exact: true });
   await editor.getByLabel("Alternative text", { exact: true }).fill("Replacement mountain view");
   await editor.getByLabel("Caption", { exact: true }).fill("A new sunrise");
-  await editor.getByLabel("Visibility", { exact: true }).selectOption("PRIVATE");
+  await editor.getByLabel("Visibility", { exact: true }).click(); await page.getByRole("option", { name: "Private", exact: true }).click();
   state.failUpload = true;
   await editor.locator('input[type="file"]').setInputFiles({ name: "replacement.png", mimeType: "image/png", buffer: Buffer.from("test-only") });
   await editor.getByRole("alert").getByText("Upload failed. Retry.", { exact: true }).waitFor();
@@ -357,7 +357,7 @@ test("cover readiness follows visibility edits and removal", async t => {
   const gallery = page.getByRole("region", { name: "Package gallery", exact: true });
   await gallery.getByRole("button", { name: "Edit", exact: true }).click();
   const editor = page.getByRole("dialog", { name: "Edit file", exact: true });
-  await editor.getByLabel("Visibility", { exact: true }).selectOption("PUBLIC");
+  await editor.getByLabel("Visibility", { exact: true }).click(); await page.getByRole("option", { name: "Public", exact: true }).click();
   await editor.getByRole("button", { name: "Save file details", exact: true }).click();
   await editor.waitFor({ state: "hidden" });
   await page.getByRole("tab", { name: "Publishing", exact: true }).click();

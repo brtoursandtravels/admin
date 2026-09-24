@@ -83,11 +83,11 @@ test("library searches beyond the current page, combines filters, previews files
   await page.getByRole("button", { name: "Close File preview" }).click();
   await page.getByRole("button", { name: "Clear search", exact: true }).click();
   await page.getByRole("button", { name: "PDF brochures", exact: true }).click();
-  await page.getByRole("combobox", { name: "Visibility", exact: true }).selectOption("PRIVATE");
+  await page.getByRole("combobox", { name: "Visibility", exact: true }).click(); await page.getByRole("option", { name: "Private", exact: true }).click();
   await page.getByRole("button", { name: "Preview nepal-brochure.pdf", exact: true }).waitFor();
   assert.equal(state.lists.at(-1).kind, "pdf");
   assert.equal(state.lists.at(-1).visibility, "PRIVATE");
-  await page.getByRole("combobox", { name: "Visibility", exact: true }).selectOption("PUBLIC");
+  await page.getByRole("combobox", { name: "Visibility", exact: true }).click(); await page.getByRole("option", { name: "Public", exact: true }).click();
   await page.getByText("No matching files", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Clear filters", exact: true }).first().click();
   await page.getByText("26 files in your library", { exact: true }).waitFor();

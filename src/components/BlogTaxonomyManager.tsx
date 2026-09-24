@@ -11,28 +11,27 @@ export function BlogTaxonomyManager() {
   return (
     <section className="mb-4">
       <Button variant="secondary" aria-expanded={open} aria-controls="blog-taxonomy" onClick={() => setOpen(!open)}>
-        {open ? "Hide categories and tags" : "Manage categories and tags"}
+        {open ? "Hide categories" : "Manage categories"}
       </Button>
-      {open ? <div id="blog-taxonomy" className="mt-3 grid gap-4 md:grid-cols-2">
-        <TaxonomyList kind="categories" resource="blog category" />
-        <TaxonomyList kind="tags" resource="blog tag" />
+      {open ? <div id="blog-taxonomy" className="mt-3">
+        <CategoryList />
       </div> : null}
     </section>
   );
 }
 
-function TaxonomyList({ kind, resource }: { kind: "categories" | "tags"; resource: string }) {
-  const query = useQuery({ queryKey: [`blog-${kind}`], queryFn: () => apiRequest<DataResponse<Entry[]>>(`/admin/blog/${kind}`) });
+function CategoryList() {
+  const query = useQuery({ queryKey: ["blog-categories"], queryFn: () => apiRequest<DataResponse<Entry[]>>("/admin/blog/categories") });
   return <Card>
-    <h2>{kind === "categories" ? "Blog categories" : "Blog tags"}</h2>
+    <h2>Blog categories</h2>
     {query.isPending ? <LoadingPanel /> : query.isError ? <ErrorPanel error={query.error} retry={() => void query.refetch()} /> :
       query.data.data.length ? <ul className="m-0 grid list-none gap-2 p-0">
         {query.data.data.map((item) => <li key={item.id} className="flex items-center justify-between gap-3 border-t border-admin-border-soft py-3">
           <span>{item.name}</span>
-          <DeleteRecordButton resource={resource} name={item.name}
-            description={`Permanently delete this ${resource} and remove its article links? The articles will be kept.`}
-            endpoint={`/admin/blog/${kind}/${item.id}/permanent`} invalidateKeys={[`blog-${kind}`, "blog-posts"]} />
+          <DeleteRecordButton resource="blog category" name={item.name}
+            description="Permanently delete this blog category and remove its article links? The articles will be kept."
+            endpoint={`/admin/blog/categories/${item.id}/permanent`} invalidateKeys={["blog-categories", "blog-posts"]} />
         </li>)}
-      </ul> : <EmptyState title={`No ${kind}`} description="Create categories and tags in the article editor." />}
+      </ul> : <EmptyState title="No categories" description="Create categories in the article editor." />}
   </Card>;
 }

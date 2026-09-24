@@ -1,3 +1,4 @@
+import { AdminSelect } from "./components/AdminSelect";
 /* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
@@ -548,16 +549,16 @@ export function Pagination({
         {onPageSize ? (
           <label className="flex items-center gap-2 text-[0.72rem]">
             Rows
-            <select
+            <AdminSelect
               aria-label="Rows per page"
               className="min-h-9 rounded-lg border border-admin-border bg-admin-surface px-2 text-admin-ink"
-              onChange={(event) => onPageSize(Number(event.target.value))}
+              onValueChange={(selectedValue) => onPageSize(Number(selectedValue))}
               value={meta.pageSize}
             >
               {[10, 25, 50, 100].map((size) => (
                 <option key={size}>{size}</option>
               ))}
-            </select>
+            </AdminSelect>
           </label>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import { AdminSelect } from "../components/AdminSelect";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Search, X } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -95,15 +96,15 @@ export function PackagesPage() {
         </label>
         <label>
           Status
-          <select
+          <AdminSelect
             value={status}
-            onChange={(event) => updateParams({ status: event.target.value })}
+            onValueChange={(selectedValue) => updateParams({ status: selectedValue })}
           >
             <option value="">All states</option>
             <option>DRAFT</option>
             <option>PUBLISHED</option>
             <option>ARCHIVED</option>
-          </select>
+          </AdminSelect>
         </label>
         </div>
         <div className="flex gap-2 overflow-x-auto border-t border-admin-border-soft pt-3" aria-label="Quick status filters">

@@ -24,21 +24,33 @@ export function PageSeoPage() {
   if (page) return <PageSeoEditor key={page.key} page={page} />;
   return (
     <>
-      <PageHeader eyebrow="Website" title="Page SEO" description="Manage Meta Title and Meta Description for the website’s static pages. Package, blog and custom-page meta tags are edited in their own content forms." />
-      <div className="grid gap-4 sm:grid-cols-2">
-        {query.data.data.map((item) => (
-          <Card key={item.key}>
-            <h2>{item.label}</h2>
-            <p className="text-sm text-admin-ink-subtle">{item.path}</p>
-            <p className="my-3 text-sm text-admin-ink-muted">{item.metaTitle || "Using the page’s default title"}</p>
-            <ActionLink to={`/content/seo/${item.key}/edit`} variant="secondary">Edit meta tags</ActionLink>
-            {item.metaTitle || item.metaDescription ? <DeleteRecordButton className="ml-2"
-              resource="saved meta tags" name={item.label} label="Reset"
-              description="Delete the saved meta title and description? This page will use its default metadata. The page itself will remain available."
-              endpoint={`/admin/settings/seo.pages.${item.key}/permanent`} invalidateKeys={["settings", "page-seo"]} /> : null}
-          </Card>
-        ))}
-      </div>
+      <PageHeader eyebrow="Website" title="Page SEO" description="Manage Meta Title and Meta Description for the website’s static pages. Package and blog meta tags are edited in their own content forms." />
+      <Card className="overflow-hidden p-0!">
+        <div aria-hidden="true" className="hidden grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)_14rem] gap-5 border-b border-admin-border bg-admin-surface-muted px-5 py-3 text-xs font-bold uppercase tracking-wide text-admin-ink-muted lg:grid">
+          <span>Page</span><span>Meta title and description</span><span>Actions</span>
+        </div>
+        <ul aria-label="Page SEO list" className="m-0 list-none divide-y divide-admin-border-soft p-0">
+          {query.data.data.map((item) => (
+            <li key={item.key} className="grid min-w-0 items-center gap-4 px-5 py-4 transition hover:bg-admin-surface-muted/50 lg:grid-cols-[minmax(10rem,1fr)_minmax(0,2fr)_14rem] lg:gap-5">
+              <div className="min-w-0">
+                <h2 className="m-0! text-base! font-bold text-admin-brand-deep">{item.label}</h2>
+                <p className="mt-1 mb-0 text-xs wrap-anywhere text-admin-ink-subtle">{item.path}</p>
+              </div>
+              <div className="min-w-0 text-sm">
+                <p className="m-0 line-clamp-2 wrap-anywhere font-semibold text-admin-ink">{item.metaTitle || "Using the page’s default title"}</p>
+                <p className="mt-1 mb-0 line-clamp-2 wrap-anywhere text-xs leading-5 text-admin-ink-muted">{item.metaDescription || "Using the page’s default description"}</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <ActionLink to={`/content/seo/${item.key}/edit`} variant="secondary">Edit meta tags</ActionLink>
+                {item.metaTitle || item.metaDescription ? <DeleteRecordButton
+                  resource="saved meta tags" name={item.label} label="Reset"
+                  description="Delete the saved meta title and description? This page will use its default metadata. The page itself will remain available."
+                  endpoint={`/admin/settings/seo.pages.${item.key}/permanent`} invalidateKeys={["settings", "page-seo"]} /> : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
     </>
   );
 }

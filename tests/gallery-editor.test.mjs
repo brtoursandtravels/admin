@@ -36,7 +36,7 @@ async function setup(t, path = "gallery", options = {}) {
     if (request.method() === "GET") state.reads.push(path);
     else state.writes.push({ path, method: request.method(), csrf: request.headers()["x-csrf-token"], body: request.headers()["content-type"]?.includes("application/json") ? request.postDataJSON() : null });
     if (/^\/admin\/media\/[^/]+\/file$/.test(path)) return route.fulfill({ contentType: "image/png", body: png });
-    if (path === "/admin/destinations") return json({ data: [destination] });
+    if (path === "/admin/destinations") return json({ data: state.destinations ?? [destination] });
     if (path === "/admin/media" && request.method() === "POST") {
       if (state.uploadGate) await state.uploadGate;
       if (state.failUpload) return json({ error: { code: "UPLOAD_FAILED", message: "Upload failed. Retry." } }, 500);
@@ -84,6 +84,48 @@ async function setup(t, path = "gallery", options = {}) {
 const albumPhotos = page => page.getByRole("region", { name: "Album photos", exact: true });
 const photoCard = (page, name) => albumPhotos(page).getByRole("article").filter({ hasText: `${name}.webp` });
 
+test("shared dropdowns support keyboard selection, empty values and menus within laptop and mobile screens", async t => {
+  const destinations = [destination, ...Array.from({ length: 40 }, (_, index) => ({ ...destination, id: `place-${index}`, name: `Destination ${String(index + 1).padStart(2, "0")}` }))];
+  const { page, state } = await setup(t, "gallery/new", { destinations });
+  const destinationField = page.getByRole("combobox", { name: "Destination", exact: true });
+  await destinationField.waitFor();
+  await page.setViewportSize({ width: 1366, height: 657 });
+  await destinationField.focus();
+  await page.keyboard.press("ArrowDown");
+  await page.getByRole("listbox").waitFor();
+  await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "option");
+  await page.keyboard.press("End");
+  await page.waitForFunction(() => document.activeElement?.textContent === "Destination 40");
+  await page.keyboard.press("Enter");
+  assert.equal(await destinationField.innerText(), "Destination 40");
+  await destinationField.click();
+  await page.waitForFunction(() => document.activeElement?.getAttribute("role") === "option");
+  await page.keyboard.type("Rajasthan");
+  await page.waitForFunction(() => document.activeElement?.textContent === "Rajasthan");
+  await page.keyboard.press("Enter");
+  assert.equal(await destinationField.innerText(), "Rajasthan");
+  for (const viewport of [{ width: 1366, height: 657 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await destinationField.click();
+    const menu = page.getByRole("listbox");
+    await menu.waitFor();
+    const box = await menu.boundingBox();
+    assert(box.x >= 0 && box.y >= 0 && box.x + box.width <= viewport.width && box.y + box.height <= viewport.height, "Menu remains inside the viewport");
+    assert(box.height <= 320, "Long lists use a compact scrollable menu");
+    await page.screenshot({ path: join(tmpdir(), `br-admin-dropdown-${viewport.width}.png`) });
+    await page.keyboard.press("Escape");
+    assert(await destinationField.evaluate(element => element === document.activeElement));
+  }
+  await destinationField.click();
+  await page.getByRole("option", { name: "No destination", exact: true }).click();
+  await page.getByLabel("Album title", { exact: true }).fill("Dropdown selection check");
+  await page.getByRole("button", { name: "Save album", exact: true }).click();
+  await page.waitForURL(`${base}/admin/gallery`);
+  assert.equal(state.writes.at(-1).body.destinationId, null);
+  assert.equal(state.writes.at(-1).body.status, "DRAFT");
+  assert.deepEqual(state.errors, []);
+});
+
 test("gallery list searches all albums, filters statuses and confirms archive and permanent delete", async t => {
   const { page, state } = await setup(t);
   await page.getByText("3 albums in your gallery", { exact: true }).waitFor();
@@ -124,7 +166,7 @@ test("new album validates its title, creates its URL automatically and preserves
   assert.equal(state.writes.length, 0);
   await page.getByLabel("Album title", { exact: true }).fill("  ગુજરાત પ્રવાસ  ");
   await page.getByLabel("Description", { exact: true }).fill("Photos from our journey.");
-  await page.getByLabel("Destination", { exact: true }).selectOption("rajasthan");
+  await page.getByLabel("Destination", { exact: true }).click(); await page.getByRole("option", { name: "Rajasthan", exact: true }).click();
   state.failSave = true;
   await page.getByRole("button", { name: "Save album", exact: true }).click();
   await page.getByText("Album could not save. Please retry.", { exact: true }).last().waitFor();
@@ -169,7 +211,7 @@ test("album uploads, library search, cover ordering and confirmed removal save t
   await library.getByLabel("Search media").fill("cover");
   await library.getByRole("button", { name: /cover.webp/ }).click();
   await library.getByRole("button", { name: "Close Select images from library" }).click();
-  await page.getByLabel("Status", { exact: true }).selectOption("PUBLISHED");
+  await page.getByLabel("Status", { exact: true }).click(); await page.getByRole("option", { name: "Published", exact: true }).click();
   await page.getByRole("button", { name: "Save album", exact: true }).click();
   await page.waitForURL(`${base}/admin/gallery`);
   const saved = state.writes.find(write => write.path === "/admin/gallery/albums");
@@ -182,7 +224,7 @@ test("album uploads, library search, cover ordering and confirmed removal save t
 test("publishing requires a public photo and scheduling uses the admin timezone", async t => {
   const { page, state } = await setup(t, "gallery/new");
   await page.getByLabel("Album title", { exact: true }).fill("New destination");
-  await page.getByLabel("Status", { exact: true }).selectOption("PUBLISHED");
+  await page.getByLabel("Status", { exact: true }).click(); await page.getByRole("option", { name: "Published", exact: true }).click();
   await page.getByRole("button", { name: "Save album", exact: true }).click();
   await page.getByText(/Add at least one public photo before publishing/).waitFor();
   assert.equal(state.writes.length, 0);
@@ -195,7 +237,12 @@ test("publishing requires a public photo and scheduling uses the admin timezone"
   assert.equal(state.writes.length, 0);
   await photoCard(page, "private").getByRole("button", { name: "Edit", exact: true }).click();
   const details = page.getByRole("dialog", { name: "Edit file", exact: true });
-  await details.getByLabel("Visibility", { exact: true }).selectOption("PUBLIC");
+  await details.getByLabel("Visibility", { exact: true }).click();
+  await details.getByRole("listbox").waitFor();
+  await page.keyboard.press("Escape");
+  assert(await details.isVisible(), "Escape closes the menu without dismissing the file editor");
+  assert(await details.getByLabel("Visibility", { exact: true }).evaluate(element => element === document.activeElement));
+  await details.getByLabel("Visibility", { exact: true }).click(); await page.getByRole("option", { name: "Public", exact: true }).click();
   await details.getByRole("button", { name: "Save file details", exact: true }).click();
   await details.waitFor({ state: "hidden" });
   await page.getByLabel("Publish date & time", { exact: true }).fill("2027-01-10T10:00");
@@ -210,6 +257,8 @@ test("publishing requires a public photo and scheduling uses the admin timezone"
 test("editing preserves existing URLs and exact publish times, reorders older photos and protects unsaved changes", async t => {
   const { page, state } = await setup(t, "gallery/rajasthan-trip/edit");
   await photoCard(page, "legacy-150").waitFor();
+  assert.equal(await page.getByRole("combobox", { name: "Destination", exact: true }).innerText(), "Rajasthan");
+  assert.equal(await page.getByRole("combobox", { name: "Status", exact: true }).innerText(), "Published");
   assert.equal(await page.getByLabel("Publish date & time", { exact: true }).inputValue(), "2026-09-20T16:50");
   await page.getByLabel("Album title", { exact: true }).fill("Renamed Rajasthan album");
   await photoCard(page, "legacy-150").getByRole("button", { name: "Move legacy-150.webp up", exact: true }).click();
