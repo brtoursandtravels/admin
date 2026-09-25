@@ -103,6 +103,7 @@
   .admin-select-menu {
     z-index: 120;
     width: var(--radix-select-trigger-width);
+    min-width: min(9rem, calc(100vw - 24px));
     max-width: calc(100vw - 24px);
     max-height: min(20rem, var(--radix-select-content-available-height));
     overflow: hidden;
