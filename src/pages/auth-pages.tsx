@@ -1,3 +1,4 @@
+import { FieldLabel } from "../components/FieldLabel";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShieldCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
@@ -108,8 +109,8 @@ export function LoginPage() {
       ) : null}
       <form className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft" onSubmit={submit} noValidate>
         <label>
-          Email address
-          <input
+          <FieldLabel required>Email address</FieldLabel>
+          <input aria-required="true" aria-label="Email address"
             autoComplete="username"
             type="email"
             {...form.register("email")}
@@ -117,8 +118,8 @@ export function LoginPage() {
           <FieldError message={form.formState.errors.email?.message} />
         </label>
         <label>
-          Password
-          <input
+          <FieldLabel required>Password</FieldLabel>
+          <input aria-required="true" aria-label="Password"
             autoComplete="current-password"
             type="password"
             {...form.register("password")}
@@ -176,8 +177,8 @@ export function ForgotPasswordPage() {
         noValidate
       >
         <label>
-          Email address
-          <input
+          <FieldLabel required>Email address</FieldLabel>
+          <input aria-required="true" aria-label="Email address"
             autoComplete="email"
             type="email"
             {...form.register("email")}
@@ -247,8 +248,8 @@ export function ResetPasswordPage() {
         noValidate
       >
         <label>
-          New password
-          <input
+          <FieldLabel required>New password</FieldLabel>
+          <input aria-required="true" aria-label="New password"
             autoComplete="new-password"
             type="password"
             {...form.register("password")}
@@ -256,8 +257,8 @@ export function ResetPasswordPage() {
           <FieldError message={form.formState.errors.password?.message} />
         </label>
         <label>
-          Confirm new password
-          <input
+          <FieldLabel required>Confirm new password</FieldLabel>
+          <input aria-required="true" aria-label="Confirm new password"
             autoComplete="new-password"
             type="password"
             {...form.register("confirmPassword")}

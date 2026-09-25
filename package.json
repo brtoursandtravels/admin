@@ -21,7 +21,9 @@
     "test:gallery-editor": "node --test tests/gallery-editor.test.mjs",
     "test:blog-editor": "node --test tests/blog-editor.test.mjs",
     "test:public-settings": "node --test tests/public-settings.test.mjs",
-    "test:inboxes": "node --test tests/inbox-pages.test.mjs"
+    "test:inboxes": "node --test tests/inbox-pages.test.mjs",
+    "test:staff-users": "node --test tests/staff-users.test.mjs",
+    "test:engagement": "node --test tests/engagement-page.test.mjs"
   },
   "dependencies": {
     "@fontsource/lato": "5.3.0",

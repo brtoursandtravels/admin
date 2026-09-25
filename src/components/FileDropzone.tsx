@@ -1,12 +1,14 @@
 import { useRef, useState } from "react";
 import { FileText, ImagePlus, Upload } from "lucide-react";
 import { Button } from "../ui";
+import { FieldLabel } from "./FieldLabel";
 
 /** Shared device picker for library uploads, package photos and file replacement. */
-export function FileDropzone({ kind = "image", multiple = false, disabled = false, onFiles }: {
+export function FileDropzone({ kind = "image", multiple = false, disabled = false, required = false, onFiles }: {
   kind?: "image" | "pdf" | "any";
   multiple?: boolean;
   disabled?: boolean;
+  required?: boolean;
   onFiles: (files: File[]) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -23,10 +25,10 @@ export function FileDropzone({ kind = "image", multiple = false, disabled = fals
     className={`flex min-w-0 flex-col items-center gap-3 rounded-xl border-2 border-dashed p-5 text-center transition-colors sm:p-6 ${dragging && !disabled ? "border-admin-brand bg-admin-brand-soft" : "border-admin-border bg-admin-surface-muted"}`}
   >
     <span className="grid size-11 place-items-center rounded-xl bg-admin-brand-soft text-admin-brand"><Icon aria-hidden="true" size={23} /></span>
-    <h4 className="m-0 text-base font-bold text-admin-brand-deep">Upload new {noun}</h4>
+    <h4 className="m-0 text-base font-bold text-admin-brand-deep"><FieldLabel required={required}>Upload new {noun}</FieldLabel></h4>
     <p className="m-0 max-w-sm text-sm leading-6 text-admin-ink-muted">Choose {multiple ? noun : `a ${noun}`} from your device or drag {multiple ? "them" : "it"} into this box.</p>
     <p className="m-0 text-xs leading-5 text-admin-ink-subtle">{kind === "pdf" ? "PDF" : `JPG, PNG, WebP or AVIF${kind === "any" ? ", or a PDF brochure" : ""}`} · Up to 4 MB {multiple ? "each" : "per file"}.</p>
-    <input ref={input} className="hidden" type="file" aria-label={`Upload ${kind === "image" ? "photos" : noun} from your device`} accept={accept} multiple={multiple} disabled={disabled} onChange={event => { onFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
+    <input ref={input} className="hidden" type="file" aria-required={required} aria-label={`Upload ${kind === "image" ? "photos" : noun} from your device`} accept={accept} multiple={multiple} disabled={disabled} onChange={event => { onFiles(Array.from(event.target.files ?? [])); event.target.value = ""; }} />
     <Button className="mt-auto w-full max-w-xs" type="button" disabled={disabled} onClick={() => input.current?.click()}>Choose {noun}</Button>
   </section>;
 }

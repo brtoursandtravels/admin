@@ -10,8 +10,8 @@ const extensions = [StarterKit.configure({
   link: { openOnClick: false, defaultProtocol: "https", protocols: ["http", "https", "mailto", "tel"], HTMLAttributes: { target: "_blank", rel: "noopener noreferrer" } },
 })];
 
-export default function RichTextEditor({ value, onChange, onBlur, disabled = false, readOnly = false, invalid = false, id = "article-content" }: {
-  value: string; onChange?: (html: string) => void; onBlur?: () => void; disabled?: boolean; readOnly?: boolean; invalid?: boolean; id?: string;
+export default function RichTextEditor({ value, onChange, onBlur, disabled = false, readOnly = false, invalid = false, required = false, id = "article-content" }: {
+  value: string; onChange?: (html: string) => void; onBlur?: () => void; disabled?: boolean; readOnly?: boolean; invalid?: boolean; required?: boolean; id?: string;
 }) {
   const editor = useEditor({
     extensions, content: value, editable: !disabled && !readOnly, immediatelyRender: false,
@@ -25,6 +25,11 @@ export default function RichTextEditor({ value, onChange, onBlur, disabled = fal
   }, [editor, value]);
   useEffect(() => { if (editor && !editor.isDestroyed) editor.setEditable(!disabled && !readOnly, false); }, [editor, disabled, readOnly]);
   useEffect(() => { if (editor && !editor.isDestroyed) editor.view.dom.setAttribute("aria-invalid", String(invalid)); }, [editor, invalid]);
+  useEffect(() => {
+    if (!editor || editor.isDestroyed) return;
+    if (readOnly) editor.view.dom.removeAttribute("aria-required");
+    else editor.view.dom.setAttribute("aria-required", String(required));
+  }, [editor, required, readOnly]);
   if (!editor || editor.isDestroyed) return <div className="rounded-xl bg-admin-surface-muted p-5 text-sm" role="status">Loading writing tools…</div>;
   return <EditorControls key={editor.instanceId} editor={editor} disabled={disabled} readOnly={readOnly} invalid={invalid} />;
 }

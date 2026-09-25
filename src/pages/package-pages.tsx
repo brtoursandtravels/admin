@@ -147,7 +147,6 @@ export function PackagesPage() {
                         <span className="font-bold text-admin-brand-deep">{item.title}</span>
                         <small>
                           /{item.slug}
-                          {item.isDemo ? " · Demo" : ""}
                         </small>
                       </td>
                       <td>

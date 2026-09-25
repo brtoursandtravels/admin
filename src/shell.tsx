@@ -18,17 +18,16 @@ import {
   PanelLeftOpen,
   Plus,
   Search,
-  ScrollText,
-  ServerCog,
   Settings2,
   Tags,
   Users,
   X,
   type LucideIcon,
 } from "lucide-react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { apiRequest, type DataResponse } from "./api";
 import { useAuth } from "./auth";
+import { AccountEditor } from "./components/AccountEditor";
 import { env } from "./env";
 import type { Role } from "./types";
 
@@ -53,9 +52,6 @@ const navItems: NavItem[] = [
   { to: "/content/settings", label: "Public settings", icon: Settings2, roles: ["SUPER_ADMIN", "CONTENT_EDITOR"] },
   { to: "/enquiries", label: "Enquiries", icon: Inbox, roles: ["SUPER_ADMIN", "SALES_AGENT"], badge: "enquiries" },
   { to: "/users", label: "Staff users", icon: Users, roles: ["SUPER_ADMIN"] },
-  { to: "/audit", label: "Activity logs", icon: ScrollText, roles: ["SUPER_ADMIN"] },
-  { to: "/profile", label: "My profile", icon: CircleUserRound },
-  { to: "/system/environment", label: "Environment", icon: ServerCog },
 ];
 
 const quickActions: Array<{ to: string; label: string; icon: LucideIcon; roles: Role[] }> = [
@@ -70,6 +66,16 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const accountOpen = searchParams.get("account") === "edit";
+  function openAccount() {
+    setProfileOpen(false);
+    setMenuOpen(false);
+    setSearchParams(previous => { const next = new URLSearchParams(previous); next.set("account", "edit"); return next; }, { replace: true });
+  }
+  function closeAccount() {
+    setSearchParams(previous => { const next = new URLSearchParams(previous); next.delete("account"); return next; }, { replace: true });
+  }
   const searchRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -217,7 +223,7 @@ export function AppShell() {
         </nav>
 
         <div className="border-t border-white/8 p-3">
-          <NavLink className={`flex min-w-0 items-center gap-3 rounded-xl bg-white/6 p-3 no-underline transition hover:bg-white/10 ${collapsed ? "lg:justify-center lg:p-2" : ""}`} to="/profile" onClick={() => setMenuOpen(false)} title={collapsed ? user?.displayName : undefined}>
+          <button type="button" aria-label="Edit my account" className={`flex w-full min-w-0 text-left items-center gap-3 rounded-xl bg-white/6 p-3 no-underline transition hover:bg-white/10 ${collapsed ? "lg:justify-center lg:p-2" : ""}`} onClick={openAccount} title={collapsed ? user?.displayName : undefined}>
             <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-admin-accent text-sm font-black text-white">
               {(user?.displayName ?? "A").slice(0, 1).toUpperCase()}
             </span>
@@ -227,7 +233,7 @@ export function AppShell() {
                 {user?.role.replaceAll("_", " ")}
               </small>
             </span>
-          </NavLink>
+          </button>
         </div>
       </aside>
 
@@ -292,7 +298,7 @@ export function AppShell() {
               {profileOpen ? (
                 <div className="admin-popover absolute top-[calc(100%+0.55rem)] right-0 w-64 overflow-hidden rounded-2xl border border-admin-border bg-white p-2">
                   <div className="border-b border-admin-border-soft px-3 py-2.5"><strong className="block truncate text-[0.82rem] text-admin-brand-deep">{user?.displayName}</strong><small className="text-[0.68rem] uppercase text-admin-ink-subtle">{user?.role.replaceAll("_", " ")}</small></div>
-                  <Link className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.8rem] font-bold text-admin-brand-deep no-underline hover:bg-admin-brand-soft" onClick={() => setProfileOpen(false)} to="/profile"><CircleUserRound size={17} />Profile</Link>
+                  <button type="button" className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[0.8rem] font-bold text-admin-brand-deep hover:bg-admin-brand-soft" onClick={openAccount}><CircleUserRound size={17} />Edit my account</button>
                   {user?.role !== "SALES_AGENT" ? <Link className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[0.8rem] font-bold text-admin-brand-deep no-underline hover:bg-admin-brand-soft" onClick={() => setProfileOpen(false)} to="/content/settings"><Settings2 size={17} />Settings</Link> : null}
                   <button className="flex w-full items-center gap-3 rounded-xl border-0 bg-transparent px-3 py-2.5 text-[0.8rem] font-bold text-admin-negative hover:bg-admin-negative-soft" onClick={signOut} type="button"><LogOut size={17} />Sign out</button>
                 </div>
@@ -304,6 +310,7 @@ export function AppShell() {
         <div className="mx-auto w-full max-w-[100rem] p-[clamp(1.25rem,3vw,2.75rem)]"><Outlet /></div>
       </main>
 
+      {accountOpen ? <AccountEditor onClose={closeAccount} /> : null}
       {commandOpen ? (
         <div className="admin-dialog-backdrop fixed inset-0 z-[150] flex items-start justify-center bg-admin-overlay p-4 pt-[max(5rem,12vh)] backdrop-blur-sm" onMouseDown={(event) => { if (event.currentTarget === event.target) setCommandOpen(false); }}>
           <div aria-label="Admin command search" aria-modal="true" className="admin-dialog-panel w-full max-w-xl overflow-hidden rounded-3xl border border-white/60 bg-white shadow-admin-dialog" role="dialog">

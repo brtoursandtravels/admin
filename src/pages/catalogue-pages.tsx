@@ -1,3 +1,4 @@
+import { FieldLabel } from "../components/FieldLabel";
 import { FormSelect } from "../components/FormSelect";
 import { MediaPicker } from "../components/FileUploader";
 /* eslint-disable react-hooks/incompatible-library */
@@ -227,7 +228,6 @@ function TaxonomyPage({
                         <span className="font-bold text-admin-brand-deep">{item.name}</span>
                         {resource === "destinations" ? <small>
                           /{item.slug}
-                          {item.isDemo ? " · Demo" : ""}
                         </small> : null}
                       </td>
                       <td>
@@ -286,13 +286,13 @@ function TaxonomyPage({
             noValidate
           >
             <label>
-              Name
-              <input {...form.register("name")} />
+              <FieldLabel required>Name</FieldLabel>
+              <input aria-required="true" aria-label="Name" {...form.register("name")} />
               <FieldError message={form.formState.errors.name?.message} />
             </label>
             {resource === "destinations" ? <><label>
-              URL slug
-              <input {...form.register("slug")} />
+              <FieldLabel required>URL slug</FieldLabel>
+              <input aria-required="true" aria-label="URL slug" {...form.register("slug")} />
               <FieldError message={form.formState.errors.slug?.message} />
             </label>
             <label>
@@ -304,22 +304,18 @@ function TaxonomyPage({
             ) : null}
             <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
-                Status
-                <FormSelect control={form.control} name={"status"}>
+                <FieldLabel required>Status</FieldLabel>
+                <FormSelect aria-required="true" aria-label="Status" control={form.control} name={"status"}>
                   <option>DRAFT</option>
                   <option>PUBLISHED</option>
                   <option>ARCHIVED</option>
                 </FormSelect>
               </label>
               <label>
-                Display order
-                <input inputMode="numeric" {...form.register("sortOrder")} />
+                <FieldLabel required>Display order</FieldLabel>
+                <input aria-required="true" aria-label="Display order" inputMode="numeric" {...form.register("sortOrder")} />
               </label>
             </div>
-            {resource === "destinations" ? <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
-              <input type="checkbox" {...form.register("isDemo")} /> Development
-              demo content
-            </label> : null}
             <div className="flex flex-wrap items-center gap-2.5">
               <Button disabled={save.isPending} type="submit">
                 {save.isPending ? "Saving…" : "Save"}

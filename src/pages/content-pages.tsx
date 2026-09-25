@@ -1,3 +1,4 @@
+import { FieldLabel } from "../components/FieldLabel";
 import { AdminSelect } from "../components/AdminSelect";
 import { FormSelect } from "../components/FormSelect";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -258,8 +259,8 @@ export function HomepageSectionsPage() {
             onSubmit={form.handleSubmit((value) => save.mutate(value))}
           >
             <label>
-              Section type
-              <FormSelect control={form.control} name={"type"}>
+              <FieldLabel required>Section type</FieldLabel>
+              <FormSelect aria-required="true" aria-label="Section type" control={form.control} name={"type"}>
                 {sectionTypes.map((type) => (
                   <option key={type}>{type}</option>
                 ))}
@@ -270,20 +271,20 @@ export function HomepageSectionsPage() {
               <input {...form.register("title")} />
             </label>
             <label>
-              Typed content JSON
-              <textarea
+              <FieldLabel required>Typed content JSON</FieldLabel>
+              <textarea aria-required="true" aria-label="Typed content JSON"
                 className="min-h-48 font-mono text-xs"
                 {...form.register("contentJson")}
               />
             </label>
             <div className="grid grid-cols-2 gap-4 max-[680px]:grid-cols-1 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
-                Display order
-                <input inputMode="numeric" {...form.register("sortOrder")} />
+                <FieldLabel required>Display order</FieldLabel>
+                <input aria-required="true" aria-label="Display order" inputMode="numeric" {...form.register("sortOrder")} />
               </label>
               <label>
-                Status
-                <FormSelect control={form.control} name={"status"}>
+                <FieldLabel required>Status</FieldLabel>
+                <FormSelect aria-required="true" aria-label="Status" control={form.control} name={"status"}>
                   <option>DRAFT</option>
                   <option>PUBLISHED</option>
                   <option>ARCHIVED</option>
@@ -297,10 +298,6 @@ export function HomepageSectionsPage() {
             <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
               <input type="checkbox" {...form.register("isVisible")} /> Visible
               when published
-            </label>
-            <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
-              <input type="checkbox" {...form.register("isDemo")} /> Demo
-              content
             </label>
             <Button disabled={save.isPending} type="submit">
               Save section
@@ -444,15 +441,15 @@ export function NavigationPage() {
             }}
           >
             <label>
-              Menu key
-              <input
+              <FieldLabel required>Menu key</FieldLabel>
+              <input aria-required="true" aria-label="Menu key"
                 value={key}
                 onChange={(event) => setKey(event.target.value)}
               />
             </label>
             <label>
-              Menu label
-              <input
+              <FieldLabel required>Menu label</FieldLabel>
+              <input aria-required="true" aria-label="Menu label"
                 value={label}
                 onChange={(event) => setLabel(event.target.value)}
               />
@@ -517,6 +514,40 @@ const blankTestimonial: Partial<Testimonial> = {
   publishedAt: null,
   isDemo: false,
 };
+
+function testimonialVisibility(item: Testimonial, currentTime: number) {
+  if (item.status === "ARCHIVED") return "ARCHIVED";
+  if (item.status !== "PUBLISHED" || !item.approved || item.isDemo || !item.publishedAt) return "DRAFT";
+  return new Date(item.publishedAt).getTime() > currentTime ? "SCHEDULED" : "PUBLISHED";
+}
+
+function localDateTime(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
+function formatPublishDate(value: string) {
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium", timeStyle: "short",
+  }).format(new Date(value));
+}
+
+function TestimonialVisibility({ item, currentTime }: { item: Testimonial; currentTime: number }) {
+  const visibility = testimonialVisibility(item, currentTime);
+  return (
+    <div className="grid justify-items-start gap-1.5">
+      <StatusBadge value={visibility} />
+      <span className="text-xs text-admin-ink-subtle">
+        {visibility === "SCHEDULED" && item.publishedAt
+          ? `Shows from ${formatPublishDate(item.publishedAt)}`
+          : visibility === "PUBLISHED" ? "Live on website" : "Hidden from website"}
+      </span>
+    </div>
+  );
+}
+
 export function EngagementPage() {
   const { csrfToken } = useAuth();
   const { notify } = useToast();
@@ -542,6 +573,11 @@ export function EngagementPage() {
   });
   const [testimonial, setTestimonial] =
     useState<Partial<Testimonial>>(blankTestimonial);
+  const [currentTime, setCurrentTime] = useState(Date.now);
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
   const faqs = useQuery({
     queryKey: ["faqs"],
     queryFn: () => apiRequest<DataResponse<Faq[]>>("/admin/faqs"),
@@ -570,7 +606,7 @@ export function EngagementPage() {
             sortOrder: Number(faq.sortOrder ?? 0),
             status: faq.status ?? "DRAFT",
             publishedAt: faq.publishedAt ?? null,
-            isDemo: Boolean(faq.isDemo),
+            isDemo: false,
           },
         },
       ),
@@ -605,18 +641,18 @@ export function EngagementPage() {
             quote: testimonial.quote,
             rating: Number(testimonial.rating ?? 5),
             consentNotes: testimonial.consentNotes || null,
-            approved: Boolean(testimonial.approved),
+            approved: testimonial.status === "PUBLISHED",
             sortOrder: Number(testimonial.sortOrder ?? 0),
             status: testimonial.status ?? "DRAFT",
             publishedAt: testimonial.publishedAt
               ? new Date(testimonial.publishedAt).toISOString()
               : null,
-            isDemo: Boolean(testimonial.isDemo),
+            isDemo: false,
           },
         },
       ),
     onSuccess: async () => {
-      notify("Testimonial saved with approval and consent rules enforced.");
+      notify("Testimonial saved.");
       setTestimonial(blankTestimonial);
       await client.invalidateQueries({ queryKey: ["testimonials"] });
       navigate("/content/engagement?view=testimonials");
@@ -653,10 +689,31 @@ export function EngagementPage() {
       const record = id
         ? testimonials.data?.data.find((item) => item.id === id)
         : null;
-      setTestimonial(record ?? blankTestimonial);
+      // Legacy records that were never approved must remain hidden on edit.
+      setTestimonial(record ? {
+        ...record,
+        status: record.status === "PUBLISHED" && (!record.approved || record.isDemo) ? "DRAFT" : record.status,
+      } : blankTestimonial);
     });
     return () => cancelAnimationFrame(frame);
   }, [editorOpen, faqs.data, id, routeMode, testimonials.data]);
+  const faqRecords = faqs.data?.data ?? [];
+  const testimonialRecords = testimonials.data?.data ?? [];
+  const liveTestimonialCount = testimonialRecords.filter((item) =>
+    testimonialVisibility(item, currentTime) === "PUBLISHED",
+  ).length;
+  const scheduledTestimonialCount = testimonialRecords.filter(
+    (item) => testimonialVisibility(item, currentTime) === "SCHEDULED",
+  ).length;
+  const draftTestimonialCount = testimonialRecords.filter(
+    (item) => testimonialVisibility(item, currentTime) === "DRAFT",
+  ).length;
+  const testimonialPublishing = testimonial.status === "PUBLISHED";
+  const testimonialScheduled = Boolean(
+    testimonialPublishing && testimonial.publishedAt &&
+      new Date(testimonial.publishedAt).getTime() > currentTime,
+  );
+  const testimonialReady = testimonialPublishing && Boolean(testimonial.consentNotes?.trim());
   return (
     <>
       <PageHeader
@@ -666,7 +723,13 @@ export function EngagementPage() {
             ? `${id ? "Edit" : "New"} ${activeMode === "faqs" ? "FAQ" : "testimonial"}`
             : "FAQs and testimonials"
         }
-        description="Package-specific FAQs are supported. Testimonials stay private until genuine consent is recorded and approval is explicit."
+        description={
+          editorOpen
+            ? activeMode === "faqs"
+              ? "Write a clear answer and choose whether it belongs to every package or one specific tour."
+              : "Add a genuine traveller review, record consent and control when it becomes visible."
+            : "Manage the answers and genuine traveller stories shown across the public website."
+        }
         actions={
           editorOpen ? (
             <BackLink to={`/content/engagement?view=${activeMode}`} />
@@ -678,26 +741,32 @@ export function EngagementPage() {
         }
       />
       {!editorOpen ? (
-      <div className="mb-5 inline-flex gap-1 rounded-xl border border-admin-border bg-admin-surface p-1 shadow-sm [&_button]:whitespace-nowrap [&_button]:rounded-lg [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-4 [&_button]:py-2.5 [&_button]:text-[0.78rem] [&_button]:font-black [&_button]:text-admin-ink-muted">
+      <div className="mb-5 inline-flex gap-1 rounded-xl border border-admin-border bg-admin-surface p-1 shadow-sm [&_button]:whitespace-nowrap [&_button]:rounded-lg [&_button]:border-0 [&_button]:bg-transparent [&_button]:px-4 [&_button]:py-2.5 [&_button]:text-[0.78rem] [&_button]:font-black [&_button]:text-admin-ink-muted" role="tablist" aria-label="Engagement content">
         <button
+          aria-selected={activeMode === "faqs"}
           className={
             activeMode === "faqs"
               ? "border-admin-brand! bg-admin-brand! text-white!"
               : ""
           }
           onClick={() => navigate("/content/engagement?view=faqs")}
+          role="tab"
+          type="button"
         >
-          FAQs
+          FAQs <span className="ml-1 opacity-70">{faqRecords.length}</span>
         </button>
         <button
+          aria-selected={activeMode === "testimonials"}
           className={
             activeMode === "testimonials"
               ? "border-admin-brand! bg-admin-brand! text-white!"
               : ""
           }
           onClick={() => navigate("/content/engagement?view=testimonials")}
+          role="tab"
+          type="button"
         >
-          Testimonials
+          Testimonials <span className="ml-1 opacity-70">{testimonialRecords.length}</span>
         </button>
       </div>
       ) : null}
@@ -705,8 +774,19 @@ export function EngagementPage() {
         <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
           {!editorOpen ? (
           <Card className="overflow-hidden p-0!">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-admin-border-soft px-5 py-4">
+              <div>
+                <h2 className="text-base!">Frequently asked questions</h2>
+                <p className="mt-1 text-xs text-admin-ink-muted">Global answers appear on the home page; package answers appear on that package page.</p>
+              </div>
+              <span className="rounded-full bg-admin-brand-soft px-3 py-1.5 text-xs font-black text-admin-brand">{faqRecords.length} total</span>
+            </div>
             {faqs.isPending ? (
               <LoadingPanel />
+            ) : faqs.isError ? (
+              <ErrorPanel error={faqs.error} retry={() => void faqs.refetch()} />
+            ) : faqRecords.length === 0 ? (
+              <EmptyState title="No FAQs yet" description="Add a global answer or connect one to a tour package." />
             ) : (
               <div className="overflow-x-auto [&_table]:w-full [&_table]:border-collapse [&_table]:text-left [&_th]:whitespace-nowrap [&_th]:bg-admin-surface-muted [&_th]:px-4 [&_th]:py-3.5 [&_th]:text-[0.65rem] [&_th]:uppercase [&_th]:tracking-[0.08em] [&_th]:text-admin-ink-muted [&_td]:border-t [&_td]:border-admin-border-soft [&_td]:px-4 [&_td]:py-3.5 [&_td]:align-top [&_td]:text-[0.8rem] [&_td_small]:mt-1 [&_td_small]:block [&_td_small]:text-admin-ink-subtle">
                 <table>
@@ -719,7 +799,7 @@ export function EngagementPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {faqs.data?.data.map((item) => (
+                    {faqRecords.map((item) => (
                       <tr key={item.id}>
                         <td className="font-bold text-admin-brand-deep">{item.question}</td>
                         <td>
@@ -769,6 +849,7 @@ export function EngagementPage() {
               <label>
                 Package
                 <AdminSelect
+                  aria-label="Package"
                   value={faq.packageId ?? ""}
                   onValueChange={(selectedValue) =>
                     setFaq((value) => ({
@@ -786,8 +867,8 @@ export function EngagementPage() {
                 </AdminSelect>
               </label>
               <label>
-                Question
-                <input
+                <FieldLabel required>Question</FieldLabel>
+                <input aria-required="true" aria-label="Question"
                   value={faq.question ?? ""}
                   onChange={(event) =>
                     setFaq((value) => ({
@@ -798,8 +879,8 @@ export function EngagementPage() {
                 />
               </label>
               <label>
-                Answer
-                <textarea
+                <FieldLabel required>Answer</FieldLabel>
+                <textarea aria-required="true" aria-label="Answer"
                   value={faq.answer ?? ""}
                   onChange={(event) =>
                     setFaq((value) => ({
@@ -810,8 +891,9 @@ export function EngagementPage() {
                 />
               </label>
               <label>
-                Status
-                <AdminSelect
+                <FieldLabel required>Status</FieldLabel>
+                <AdminSelect aria-required="true"
+                  aria-label="Status"
                   value={faq.status}
                   onValueChange={(selectedValue) =>
                     setFaq((value) => ({
@@ -838,7 +920,37 @@ export function EngagementPage() {
       ) : (
         <div className={editorOpen ? "max-w-4xl" : "grid items-start gap-4"}>
           {!editorOpen ? (
+          <>
+          <section className="grid grid-cols-4 gap-3 max-[980px]:grid-cols-2 max-[520px]:grid-cols-1" aria-label="Testimonial publishing summary">
+            <div className="rounded-2xl border border-admin-border bg-admin-surface p-4 shadow-admin-card">
+              <span className="text-xs font-bold text-admin-ink-muted">All testimonials</span>
+              <strong className="mt-2 block text-2xl font-black text-admin-brand-deep">{testimonialRecords.length}</strong>
+            </div>
+            <div className="rounded-2xl border border-admin-positive/20 bg-admin-positive-soft p-4">
+              <span className="text-xs font-bold text-admin-positive">Live on website</span>
+              <strong className="mt-2 block text-2xl font-black text-admin-positive">{liveTestimonialCount}</strong>
+            </div>
+            <div className="rounded-2xl border border-admin-warning/20 bg-admin-warning-soft p-4">
+              <span className="text-xs font-bold text-admin-warning">Scheduled</span>
+              <strong className="mt-2 block text-2xl font-black text-admin-warning">{scheduledTestimonialCount}</strong>
+            </div>
+            <div className="rounded-2xl border border-admin-border bg-admin-surface p-4 shadow-admin-card">
+              <span className="text-xs font-bold text-admin-ink-muted">Drafts</span>
+              <strong className="mt-2 block text-2xl font-black text-admin-brand-deep">{draftTestimonialCount}</strong>
+            </div>
+          </section>
+          <div className="rounded-2xl border border-admin-brand/15 bg-admin-brand-soft px-5 py-4 text-sm leading-6 text-admin-brand-deep">
+            <strong className="block">How testimonials appear publicly</strong>
+            <span>Published testimonials appear from their selected date and time in one sliding row: up to 3 cards on laptops, 2 on tablets and 1 on phones. Visitors can swipe or use the arrows to read more. Arrows stay hidden when all cards fit. Display order controls the sequence.</span>
+          </div>
           <Card className="overflow-hidden p-0!">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-admin-border-soft px-5 py-4">
+              <div>
+                <h2 className="text-base!">Traveller testimonials</h2>
+                <p className="mt-1 text-xs text-admin-ink-muted">Drafts and archived stories stay hidden. Scheduled stories appear automatically when their date arrives.</p>
+              </div>
+              <span className="rounded-full bg-admin-brand-soft px-3 py-1.5 text-xs font-black text-admin-brand">Ordered for display</span>
+            </div>
             {testimonials.isPending ? (
               <LoadingPanel />
             ) : testimonials.isError ? (
@@ -849,7 +961,7 @@ export function EngagementPage() {
             ) : testimonials.data.data.length === 0 ? (
               <EmptyState
                 title="No testimonials yet"
-                description="Add a traveller story, record consent, then approve and publish it."
+                description="Add a traveller story, record permission, then publish now or choose a future date."
               />
             ) : (
               <div>
@@ -879,16 +991,7 @@ export function EngagementPage() {
                           </td>
                           <td>{item.rating} / 5</td>
                           <td>
-                            <div className="grid justify-items-start gap-1.5">
-                              <StatusBadge value={item.status} />
-                              {item.approved ? (
-                                <StatusBadge value="APPROVED" />
-                              ) : (
-                                <span className="text-admin-ink-subtle">
-                                  Not approved
-                                </span>
-                              )}
-                            </div>
+                            <TestimonialVisibility item={item} currentTime={currentTime} />
                           </td>
                           <td>{item.sortOrder}</td>
                           <td>
@@ -943,10 +1046,7 @@ export function EngagementPage() {
                         {item.quote}
                       </p>
                       <div className="flex flex-wrap items-center gap-1.5">
-                        <StatusBadge value={item.status} />
-                        {item.approved ? (
-                          <StatusBadge value="APPROVED" />
-                        ) : null}
+                        <TestimonialVisibility item={item} currentTime={currentTime} />
                         <span className="ml-auto text-[0.7rem] text-admin-ink-subtle">
                           Order {item.sortOrder}
                         </span>
@@ -979,6 +1079,7 @@ export function EngagementPage() {
               </div>
             )}
           </Card>
+          </>
           ) : null}
           {editorOpen ? id && testimonials.isError ? (
             <ErrorPanel error={testimonials.error} retry={() => void testimonials.refetch()} />
@@ -996,8 +1097,8 @@ export function EngagementPage() {
             </div>
             <div className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft">
               <label>
-                Public name
-                <input
+                <FieldLabel required>Public name</FieldLabel>
+                <input aria-required="true" aria-label="Public name"
                   maxLength={120}
                   required
                   value={testimonial.publicName ?? ""}
@@ -1040,8 +1141,8 @@ export function EngagementPage() {
                 </label>
               </div>
               <label>
-                Quote
-                <textarea
+                <FieldLabel required>Quote</FieldLabel>
+                <textarea aria-required="true" aria-label="Quote"
                   maxLength={5000}
                   required
                   value={testimonial.quote ?? ""}
@@ -1057,8 +1158,10 @@ export function EngagementPage() {
                 </span>
               </label>
               <label>
-                Consent evidence / notes
-                <textarea
+                <FieldLabel required={testimonialPublishing}>Traveller permission notes</FieldLabel>
+                <textarea aria-required={testimonialPublishing} aria-label="Traveller permission notes"
+                  maxLength={5000}
+                  placeholder="Record where and when the traveller gave permission to publish this review."
                   value={testimonial.consentNotes ?? ""}
                   onChange={(event) =>
                     setTestimonial((value) => ({
@@ -1067,11 +1170,13 @@ export function EngagementPage() {
                     }))
                   }
                 />
+                <span className="text-[0.68rem] font-normal text-admin-ink-subtle">Required to publish. Record how the traveller gave permission; these notes stay private.</span>
               </label>
               <div className="grid grid-cols-2 gap-3 max-[520px]:grid-cols-1">
                 <label>
-                  Rating
-                  <AdminSelect
+                  <FieldLabel required>Rating</FieldLabel>
+                  <AdminSelect aria-required="true"
+                    aria-label="Rating"
                     value={testimonial.rating ?? 5}
                     onValueChange={(selectedValue) =>
                       setTestimonial((value) => ({
@@ -1101,10 +1206,12 @@ export function EngagementPage() {
                       }))
                     }
                   />
+                  <span className="text-[0.68rem] font-normal text-admin-ink-subtle">Lower numbers appear first.</span>
                 </label>
                 <label>
-                  Status
-                  <AdminSelect
+                  <FieldLabel required>Website status</FieldLabel>
+                  <AdminSelect aria-required="true"
+                    aria-label="Website status"
                     value={testimonial.status}
                     onValueChange={(selectedValue) =>
                       setTestimonial((value) => ({
@@ -1113,57 +1220,41 @@ export function EngagementPage() {
                       }))
                     }
                   >
-                    <option>DRAFT</option>
-                    <option>PUBLISHED</option>
-                    <option>ARCHIVED</option>
+                    <option value="DRAFT">Draft — hidden</option>
+                    <option value="PUBLISHED">Published — show on website</option>
+                    <option value="ARCHIVED">Archived — hidden</option>
                   </AdminSelect>
+                  <span className="text-[0.68rem] font-normal text-admin-ink-subtle">Publishing confirms that this review is ready and you have the traveller’s permission.</span>
                 </label>
+                {testimonialPublishing ? (
                 <label>
-                  Publish date
+                  Show on website from (optional)
                   <input
+                    aria-label="Show on website from (optional)"
                     type="datetime-local"
-                    value={testimonial.publishedAt?.slice(0, 16) ?? ""}
+                    value={localDateTime(testimonial.publishedAt)}
                     onChange={(event) =>
                       setTestimonial((value) => ({
                         ...value,
-                        publishedAt: event.target.value || null,
+                        publishedAt: event.target.value ? new Date(event.target.value).toISOString() : null,
                       }))
                     }
                   />
+                  <span className="text-[0.68rem] font-normal text-admin-ink-subtle">Leave blank to show on save. A future date schedules it automatically. Times use your local time zone ({Intl.DateTimeFormat().resolvedOptions().timeZone}).</span>
                 </label>
+                ) : null}
               </div>
-              <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
-                <input
-                  checked={Boolean(testimonial.approved)}
-                  onChange={(event) =>
-                    setTestimonial((value) => ({
-                      ...value,
-                      approved: event.target.checked,
-                    }))
-                  }
-                  type="checkbox"
-                />{" "}
-                Approved for public display
-              </label>
-              <label className="flex! items-center gap-2.5 [&_input]:min-h-0! [&_input]:w-auto!">
-                <input
-                  checked={Boolean(testimonial.isDemo)}
-                  onChange={(event) =>
-                    setTestimonial((value) => ({
-                      ...value,
-                      isDemo: event.target.checked,
-                    }))
-                  }
-                  type="checkbox"
-                />{" "}
-                Demo content
-              </label>
+              <div className={`rounded-xl border px-4 py-3 text-sm leading-6 ${testimonialReady ? "border-admin-positive/20 bg-admin-positive-soft text-admin-positive" : "border-admin-warning/20 bg-admin-warning-soft text-admin-warning"}`} role="status">
+                <strong className="block">{!testimonialPublishing ? "Hidden from the website" : !testimonialReady ? "Add traveller permission before publishing" : testimonialScheduled ? "Scheduled for the website" : "Ready to show on the website"}</strong>
+                <span>{!testimonialPublishing ? "This testimonial stays hidden. Select Published when you want it to appear." : !testimonialReady ? "Add permission notes above to publish now or schedule for later." : testimonialScheduled && testimonial.publishedAt ? `After saving, this testimonial will appear automatically on or after ${formatPublishDate(testimonial.publishedAt)}. No second save is needed; the public page updates after its next refresh.` : "Saving will publish this testimonial. Allow a short delay for the public page to refresh."}</span>
+              </div>
               <div className="flex flex-wrap gap-2 [&>button]:max-[520px]:w-full">
                 <Button
                   disabled={
                     saveTestimonial.isPending ||
                     !testimonial.publicName?.trim() ||
-                    (testimonial.quote?.trim().length ?? 0) < 10
+                    (testimonial.quote?.trim().length ?? 0) < 10 ||
+                    (testimonialPublishing && !testimonial.consentNotes?.trim())
                   }
                   onClick={() => saveTestimonial.mutate()}
                 >

@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   BookOpenText,
   CalendarDays,
@@ -8,19 +8,14 @@ import {
   UploadCloud,
   type LucideIcon,
 } from "lucide-react";
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest, type DataResponse } from "../api";
 import { useAuth } from "../auth";
-import { env } from "../env";
 import {
-  Button,
   Card,
   ErrorPanel,
   LoadingPanel,
   PageHeader,
-  getErrorMessage,
-  useToast,
 } from "../ui";
 
 type Dashboard = {
@@ -164,170 +159,6 @@ export function DashboardPage() {
           </div>
         </>
       )}
-    </>
-  );
-}
-
-export function EnvironmentPage() {
-  return (
-    <>
-      <PageHeader
-        eyebrow="Configuration"
-        title="Environment"
-        description="Only browser-safe values are visible in this application."
-      />
-      <Card>
-        <dl className="m-0 border-t border-admin-border-soft [&_div]:grid [&_div]:grid-cols-[12rem_1fr] [&_div]:gap-4 [&_div]:border-b [&_div]:border-admin-border-soft [&_div]:py-3.5 max-[680px]:[&_div]:grid-cols-1 [&_dt]:text-[0.78rem] [&_dt]:text-admin-ink-muted [&_dd]:m-0 [&_dd]:break-words [&_dd]:font-mono [&_dd]:text-[0.78rem]">
-          <div>
-            <dt>API base URL</dt>
-            <dd>{env.apiBaseUrl}</dd>
-          </div>
-          <div>
-            <dt>Public site URL</dt>
-            <dd>{env.publicSiteUrl}</dd>
-          </div>
-          <div>
-            <dt>Admin base path</dt>
-            <dd>{import.meta.env.BASE_URL}</dd>
-          </div>
-        </dl>
-        <p className="text-[0.7rem] text-admin-ink-subtle">
-          Database credentials, SMTP secrets, session keys and reset tokens are
-          never compiled into this client.
-        </p>
-      </Card>
-    </>
-  );
-}
-
-export function ProfilePage() {
-  const auth = useAuth();
-  const { notify } = useToast();
-  const [displayName, setDisplayName] = useState(auth.user?.displayName ?? "");
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmation, setConfirmation] = useState("");
-  const profile = useMutation({
-    mutationFn: () =>
-      apiRequest("/auth/profile", {
-        method: "PUT",
-        csrfToken: auth.csrfToken,
-        body: { displayName },
-      }),
-    onSuccess: async () => {
-      await auth.refresh();
-      notify("Profile name updated.");
-    },
-    onError: (error) => notify(getErrorMessage(error), "error"),
-  });
-  const password = useMutation({
-    mutationFn: () => {
-      if (newPassword.length < 14)
-        throw new Error("Use at least 14 characters for the new password.");
-      if (newPassword !== confirmation)
-        throw new Error("New password confirmation does not match.");
-      return apiRequest<void>("/auth/change-password", {
-        method: "POST",
-        csrfToken: auth.csrfToken,
-        body: { currentPassword, newPassword },
-      });
-    },
-    onSuccess: () => {
-      window.location.assign(`${import.meta.env.BASE_URL}login`);
-    },
-    onError: (error) => notify(getErrorMessage(error), "error"),
-  });
-  return (
-    <>
-      <PageHeader
-        eyebrow="Account"
-        title="My profile"
-        description="Update your display name or securely change your password. A password change revokes every active session."
-      />
-      <div className="grid grid-cols-2 gap-4 max-[900px]:grid-cols-1">
-        <Card>
-          <h2>Profile details</h2>
-          <dl className="m-0 border-t border-admin-border-soft [&_div]:grid [&_div]:grid-cols-[12rem_1fr] [&_div]:gap-4 [&_div]:border-b [&_div]:border-admin-border-soft [&_div]:py-3.5 max-[680px]:[&_div]:grid-cols-1 [&_dt]:text-[0.78rem] [&_dt]:text-admin-ink-muted [&_dd]:m-0 [&_dd]:break-words [&_dd]:font-mono [&_dd]:text-[0.78rem]">
-            <div>
-              <dt>Email</dt>
-              <dd>{auth.user?.email}</dd>
-            </div>
-            <div>
-              <dt>Role</dt>
-              <dd>{auth.user?.role.replaceAll("_", " ")}</dd>
-            </div>
-          </dl>
-          <form
-            className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft"
-            onSubmit={(event) => {
-              event.preventDefault();
-              profile.mutate();
-            }}
-          >
-            <label>
-              Display name
-              <input
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-              />
-            </label>
-            <Button
-              disabled={profile.isPending || displayName.trim().length < 2}
-              type="submit"
-            >
-              Save profile
-            </Button>
-          </form>
-        </Card>
-        <Card>
-          <h2>Change password</h2>
-          <form
-            className="mt-6 grid gap-4 [&_label]:grid [&_label]:gap-1.5 [&_label]:text-[0.79rem] [&_label]:font-bold [&_label]:text-admin-brand-deep [&_input]:min-h-[2.7rem] [&_input]:w-full [&_input]:rounded-[0.55rem] [&_input]:border [&_input]:border-admin-border [&_input]:bg-admin-surface [&_input]:px-3 [&_input]:py-2.5 [&_input]:text-admin-ink [&_select]:min-h-[2.7rem] [&_select]:w-full [&_select]:rounded-[0.55rem] [&_select]:border [&_select]:border-admin-border [&_select]:bg-admin-surface [&_select]:px-3 [&_select]:py-2.5 [&_select]:text-admin-ink [&_textarea]:min-h-32 [&_textarea]:w-full [&_textarea]:resize-y [&_textarea]:rounded-[0.55rem] [&_textarea]:border [&_textarea]:border-admin-border [&_textarea]:bg-admin-surface [&_textarea]:px-3 [&_textarea]:py-2.5 [&_textarea]:leading-relaxed [&_textarea]:text-admin-ink [&_input:focus]:border-admin-brand [&_input:focus]:outline-2 [&_input:focus]:outline-admin-brand-soft [&_select:focus]:border-admin-brand [&_select:focus]:outline-2 [&_select:focus]:outline-admin-brand-soft [&_textarea:focus]:border-admin-brand [&_textarea:focus]:outline-2 [&_textarea:focus]:outline-admin-brand-soft"
-            onSubmit={(event) => {
-              event.preventDefault();
-              password.mutate();
-            }}
-          >
-            <label>
-              Current password
-              <input
-                autoComplete="current-password"
-                type="password"
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-              />
-            </label>
-            <label>
-              New password
-              <input
-                autoComplete="new-password"
-                type="password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-              />
-              <span className="text-[0.68rem] font-normal text-admin-ink-subtle">At least 14 characters.</span>
-            </label>
-            <label>
-              Confirm new password
-              <input
-                autoComplete="new-password"
-                type="password"
-                value={confirmation}
-                onChange={(event) => setConfirmation(event.target.value)}
-              />
-            </label>
-            <Button
-              disabled={password.isPending || !currentPassword || !newPassword}
-              type="submit"
-            >
-              Change password and sign out
-            </Button>
-          </form>
-          <Link className="mt-5 inline-block text-[0.78rem] font-bold text-admin-brand hover:text-admin-accent" to="/forgot-password">
-            Use email reset instead
-          </Link>
-        </Card>
-      </div>
     </>
   );
 }

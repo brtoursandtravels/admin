@@ -13,9 +13,9 @@ export function InboxSearch({ initialValue, label, placeholder, onSearch }: { in
   </form>;
 }
 
-export function InboxStatusFilters({ statuses, value, onChange, label }: { statuses: readonly string[]; value: string; onChange: (value: string) => void; label: string }) {
+export function InboxStatusFilters({ statuses, value, onChange, label, labels }: { statuses: readonly string[]; value: string; onChange: (value: string) => void; label: string; labels?: Record<string, string> }) {
   return <div className="flex flex-wrap gap-1.5" role="group" aria-label={label}>
-    {["", ...statuses].map(status => <button key={status} type="button" aria-pressed={value === status} className={`min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${status === value ? "bg-admin-brand text-white" : "bg-admin-surface-muted text-admin-ink-muted hover:bg-admin-brand-soft"}`} onClick={() => onChange(status)}>{status ? readableLabel(status) : "All"}</button>)}
+    {["", ...statuses].map(status => <button key={status} type="button" aria-pressed={value === status} className={`min-h-10 rounded-lg px-3 text-xs font-bold transition-colors ${status === value ? "bg-admin-brand text-white" : "bg-admin-surface-muted text-admin-ink-muted hover:bg-admin-brand-soft"}`} onClick={() => onChange(status)}>{status ? labels?.[status] ?? readableLabel(status) : "All enquiries"}</button>)}
   </div>;
 }
 

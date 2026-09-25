@@ -13,10 +13,8 @@ import {
 } from "./pages/auth-pages";
 import {
   DashboardPage,
-  EnvironmentPage,
   ForbiddenPage,
   NotFoundPage,
-  ProfilePage,
 } from "./pages/dashboard-pages";
 import { AppShell } from "./shell";
 import { ConfirmationProvider, ToastProvider } from "./ui";
@@ -63,11 +61,6 @@ const EnquiryDetailPage = lazy(() =>
 const UsersPage = lazy(() =>
   import("./pages/operations-pages").then((module) => ({
     default: module.UsersPage,
-  })),
-);
-const AuditLogsPage = lazy(() =>
-  import("./pages/operations-pages").then((module) => ({
-    default: module.AuditLogsPage,
   })),
 );
 
@@ -142,11 +135,11 @@ const router = createBrowserRouter(
                 { path: "users", element: <UsersPage /> },
                 { path: "users/new", element: <UsersPage /> },
                 { path: "users/:id/edit", element: <UsersPage /> },
-                { path: "audit", element: <AuditLogsPage /> },
               ],
             },
-            { path: "profile", element: <ProfilePage /> },
-            { path: "system/environment", element: <EnvironmentPage /> },
+            { path: "profile", element: <Navigate to="/?account=edit" replace /> },
+            { path: "audit", element: <Navigate to="/" replace /> },
+            { path: "system/environment", element: <Navigate to="/" replace /> },
             { path: "forbidden", element: <ForbiddenPage /> },
             { path: "*", element: <NotFoundPage /> },
           ],

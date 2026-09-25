@@ -1,3 +1,4 @@
+import { FieldLabel } from "./FieldLabel";
 import { AdminSelect } from "./AdminSelect";
 import { useEffect, useRef, useState } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -20,6 +21,7 @@ export interface CommonFileUploaderProps {
   onSetCover?: (assetId: string) => void;
   label?: string;
   helperText?: string;
+  required?: boolean;
   disabled?: boolean;
   onBusyChange?: (busy: boolean) => void;
 }
@@ -52,7 +54,7 @@ function FileSourcePicker({ pdf, multiple = false, disabled, onUpload, onLibrary
   </div>;
 }
 
-export function FileUploader({ multiple = false, maxFiles = 10, accept = "image/*", value, onChange, allowCoverSelection = false, coverAssetId, onSetCover, label = "Images", helperText, disabled = false, onBusyChange }: CommonFileUploaderProps) {
+export function FileUploader({ multiple = false, maxFiles = 10, accept = "image/*", value, onChange, allowCoverSelection = false, coverAssetId, onSetCover, label = "Images", helperText, required = false, disabled = false, onBusyChange }: CommonFileUploaderProps) {
   const assets = Array.isArray(value) ? value : value ? [value] : [];
   const limit = multiple ? maxFiles : 1;
   const pdf = accept === "application/pdf";
@@ -143,7 +145,7 @@ export function FileUploader({ multiple = false, maxFiles = 10, accept = "image/
   }
   return (
     <section className="@container grid min-w-0 gap-4" aria-label={label}>
-      <div><h3 className="m-0 text-base font-bold text-admin-brand-deep">{label}</h3>{helperText ? <p className="mt-1 text-sm text-admin-ink-muted">{helperText}</p> : null}</div>
+      <div><h3 className="m-0 text-base font-bold text-admin-brand-deep"><FieldLabel required={required}>{label}</FieldLabel></h3>{helperText ? <p className="mt-1 text-sm text-admin-ink-muted">{helperText}</p> : null}</div>
       {assets.length < limit ? <FileSourcePicker pdf={pdf} multiple={multiple} disabled={locked} onUpload={files => void upload(files)} onLibrary={() => setLibrary({})} /> : null}
       <p className="m-0 text-xs text-admin-ink-muted">{assets.length}/{limit} selected</p>
       {!editing && progress ? <p role="status" className="rounded-lg bg-admin-brand-soft p-3 text-sm">{progress}</p> : null}
@@ -193,10 +195,10 @@ export function FileUploader({ multiple = false, maxFiles = 10, accept = "image/
           <fieldset disabled={locked} className="grid min-w-0 gap-3 border-0 border-t border-solid border-admin-border p-0 pt-4">
             <legend className="sr-only">File details</legend>
             <div><h3 className="m-0 text-base font-bold text-admin-brand-deep">File details</h3><p className="mb-0 mt-1 text-sm text-admin-ink-muted">Saving details updates this file wherever it is used. Uploading a replacement copies these details to the new file.</p></div>
-            <label className="grid gap-1 text-sm">Alternative text<input className="admin-control" value={altText} maxLength={300} onChange={event => setAltText(event.target.value)} /></label>
+            <label className="grid gap-1 text-sm"><FieldLabel required>Alternative text</FieldLabel><input aria-required="true" aria-label="Alternative text" className="admin-control" value={altText} maxLength={300} onChange={event => setAltText(event.target.value)} /></label>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="grid gap-1 text-sm">Caption<textarea className="admin-control" value={caption} maxLength={500} rows={2} onChange={event => setCaption(event.target.value)} /></label>
-              <label className="grid content-start gap-1 text-sm">Visibility<AdminSelect aria-label="Visibility" className="admin-control" value={visibility} onValueChange={selectedValue => setVisibility(selectedValue as MediaAsset["visibility"])}><option value="PUBLIC">Public</option><option value="PRIVATE">Private</option></AdminSelect></label>
+              <label className="grid content-start gap-1 text-sm"><FieldLabel required>Visibility</FieldLabel><AdminSelect aria-required="true" aria-label="Visibility" className="admin-control" value={visibility} onValueChange={selectedValue => setVisibility(selectedValue as MediaAsset["visibility"])}><option value="PUBLIC">Public</option><option value="PRIVATE">Private</option></AdminSelect></label>
             </div>
             <Button type="button" disabled={locked} onClick={() => void saveMetadata()}>Save file details</Button>
           </fieldset>

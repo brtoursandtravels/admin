@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ArrowDown, ArrowUp, Check, X } from "lucide-react";
 import { Button, useConfirm, useToast } from "../ui";
+import { FieldLabel } from "./FieldLabel";
 
-export function ListEditor({ label, value, onChange, presets = [], maxItems = 100, maxLength = 500, tokens = false, negative = false }: { label: string; value: string; onChange: (value: string) => void; presets?: string[]; maxItems?: number; maxLength?: number; tokens?: boolean; negative?: boolean }) {
+export function ListEditor({ label, value, onChange, presets = [], maxItems = 100, maxLength = 500, tokens = false, negative = false, required = false }: { label: string; value: string; onChange: (value: string) => void; presets?: string[]; maxItems?: number; maxLength?: number; tokens?: boolean; negative?: boolean; required?: boolean }) {
   const [draft, setDraft] = useState("");
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const confirm = useConfirm();
@@ -19,7 +20,7 @@ export function ListEditor({ label, value, onChange, presets = [], maxItems = 10
   }
   function move(from: number, to: number) { const next = [...items]; next.splice(to, 0, next.splice(from, 1)[0]!); onChange(next.join("\n")); }
   return <fieldset className="min-w-0 rounded-xl border border-admin-border p-4">
-    <legend className="px-2 text-sm font-bold">{label}</legend>
+    <legend className="px-2 text-sm font-bold"><FieldLabel required={required}>{label}</FieldLabel></legend>
     <ul className={tokens ? "m-0 mb-3 flex list-none flex-wrap gap-2 p-0" : "m-0 mb-3 grid list-none gap-2 p-0"}>
       {items.map((item, index) => <li key={`${index}-${item}`} draggable={!tokens} onDragStart={() => setDragIndex(index)} onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); if (dragIndex !== null) move(dragIndex, index); setDragIndex(null); }} className={`flex min-w-0 items-center gap-2 bg-admin-surface-muted px-3 py-2 ${tokens ? "rounded-full" : "rounded-lg"}`}>
         {negative ? <X size={15} className="shrink-0 text-admin-negative" /> : <Check size={15} className="shrink-0 text-admin-positive" />}
