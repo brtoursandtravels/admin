@@ -31,7 +31,7 @@ rules and consumes those variables; it does not define independent colours.
 
 ## Environment
 
-- Copy `.env.example` to `.env.local` and set `API_PROXY_TARGET` to the local API
+- Create an ignored `.env.local` and set `API_PROXY_TARGET` to the local API
   origin (usually `http://localhost:4000`). Vite uses it only to proxy `/api/v1`
   and `/media` while developing.
 - Browser API calls always use `/api/v1`. On Vercel, `vercel.json` routes those
