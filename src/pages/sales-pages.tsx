@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { apiRequest, type DataResponse } from "../api";
 import { useAuth } from "../auth";
-import { env } from "../env";
 import { AdminSelect } from "../components/AdminSelect";
 import { EnquiryContactActions, EnquiryStatusBadge } from "../components/EnquiryTools";
 import { FieldLabel } from "../components/FieldLabel";
@@ -45,7 +44,7 @@ export function EnquiryDetailPage() {
 }
 
 function EnquiryWorkspace({ item, assignees, returnTo, refresh, refreshing }: { item: EnquiryDetail; assignees: UseQueryResult<DataResponse<Assignee[]>>; returnTo: string; refresh: () => Promise<void>; refreshing: boolean }) {
-  const { csrfToken, user } = useAuth();
+  const { csrfToken, user, publicSiteUrl } = useAuth();
   const { notify } = useToast();
   const [nextStatus, setNextStatus] = useState<EnquiryStatus | "">("");
   const [reason, setReason] = useState("");
@@ -92,7 +91,7 @@ function EnquiryWorkspace({ item, assignees, returnTo, refresh, refreshing }: { 
         <h3 className="mb-2 mt-5 text-sm">{item.subject || "Traveller’s message"}</h3>
         <p className="m-0 whitespace-pre-wrap rounded-xl bg-admin-surface-muted p-4 text-sm leading-7 [overflow-wrap:anywhere]">{item.message || "No message was included."}</p>
         <dl className="mb-0 mt-5 grid gap-x-5 sm:grid-cols-2">{details.map(detail => <div key={detail.label} className="min-w-0 border-t border-admin-border-soft py-3"><dt className="text-xs text-admin-ink-muted">{detail.label}</dt><dd className="mt-1 mb-0 text-sm font-bold leading-6 [overflow-wrap:anywhere]">{detail.value}</dd></div>)}</dl>
-        {item.packageSlug ? <a href={env.publicSiteUrl.replace(/\/$/, "") + "/packages/" + encodeURIComponent(item.packageSlug)} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-admin-brand">View package on website<ArrowUpRight size={14} aria-hidden="true" /></a> : null}
+        {item.packageSlug && publicSiteUrl ? <a href={new URL("/packages/" + encodeURIComponent(item.packageSlug), publicSiteUrl).toString()} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-admin-brand">View package on website<ArrowUpRight size={14} aria-hidden="true" /></a> : null}
       </Card>
 
       <aside aria-label="Follow up on this enquiry" className="grid min-w-0 gap-4 lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-3">

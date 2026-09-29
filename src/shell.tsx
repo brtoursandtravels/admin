@@ -28,7 +28,6 @@ import { Link, NavLink, Outlet, useLocation, useNavigate, useSearchParams } from
 import { apiRequest, type DataResponse } from "./api";
 import { useAuth } from "./auth";
 import { AccountEditor } from "./components/AccountEditor";
-import { env } from "./env";
 import type { Role } from "./types";
 
 type BadgeKey = "enquiries";
@@ -63,7 +62,7 @@ const quickActions: Array<{ to: string; label: string; icon: LucideIcon; roles: 
 type ShellDashboard = { newEnquiries: number };
 
 export function AppShell() {
-  const { user, logout } = useAuth();
+  const { user, logout, publicSiteUrl } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -287,9 +286,9 @@ export function AppShell() {
                 ) : null}
               </div>
             ) : null}
-            <a aria-label="View public site" className="hidden min-h-10 items-center gap-2 rounded-xl border border-admin-border bg-white px-3 text-[0.78rem] font-bold text-admin-brand no-underline transition hover:border-admin-brand/25 hover:bg-admin-brand-soft xl:inline-flex" href={env.publicSiteUrl} target="_blank" rel="noreferrer">
+            {publicSiteUrl ? <a aria-label="View public site" className="hidden min-h-10 items-center gap-2 rounded-xl border border-admin-border bg-white px-3 text-[0.78rem] font-bold text-admin-brand no-underline transition hover:border-admin-brand/25 hover:bg-admin-brand-soft xl:inline-flex" href={publicSiteUrl} target="_blank" rel="noreferrer">
               <ExternalLink size={16} aria-hidden="true" /><span>Live site</span><span className="rounded-full bg-admin-positive-soft px-1.5 py-0.5 text-[0.58rem] uppercase text-admin-positive">Open</span>
-            </a>
+            </a> : null}
             <div className="relative">
               <button aria-expanded={profileOpen} aria-label="Open profile menu" className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-admin-border bg-white px-2 text-admin-brand transition hover:bg-admin-brand-soft" onClick={() => { setProfileOpen((open) => !open); setCreateOpen(false); }} type="button">
                 <span className="flex size-7 items-center justify-center rounded-lg bg-admin-accent text-[0.7rem] font-black text-white">{(user?.displayName ?? "A").slice(0, 1).toUpperCase()}</span>

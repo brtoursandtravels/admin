@@ -16,6 +16,7 @@ type LoginResult = { user: AdminUser; csrfToken: string; expiresAt: string };
 type AuthContextValue = {
   user: AdminUser | null;
   csrfToken: string;
+  publicSiteUrl: string | null;
   loading: boolean;
   sessionExpired: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -28,15 +29,26 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function publicSiteOrigin(value?: string): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
 async function preAuthCsrf() {
   return apiRequest<
-    DataResponse<{ csrfToken: string; authenticated: boolean; user?: AdminUser | null }>
+    DataResponse<{ csrfToken: string; authenticated: boolean; user?: AdminUser | null; publicSiteUrl?: string }>
   >("/auth/csrf", { authenticated: false });
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
   const [csrfToken, setCsrfToken] = useState("");
+  const [publicSiteUrl, setPublicSiteUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [sessionExpired, setSessionExpired] = useState(false);
 
@@ -44,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const csrf = await preAuthCsrf();
       setCsrfToken(csrf.data.csrfToken);
+      setPublicSiteUrl(publicSiteOrigin(csrf.data.publicSiteUrl));
       if (csrf.data.authenticated) {
         // Older API deployments do not include the user in the CSRF response.
         const user = csrf.data.user ?? (
@@ -56,6 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch {
       setUser(null);
       setCsrfToken("");
+      setPublicSiteUrl(null);
     } finally {
       setLoading(false);
     }
@@ -78,12 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       csrfToken,
+      publicSiteUrl,
       loading,
       sessionExpired,
       clearExpiredNotice: () => setSessionExpired(false),
       refresh: restore,
       login: async (email, password) => {
         const csrf = await preAuthCsrf();
+        setPublicSiteUrl(publicSiteOrigin(csrf.data.publicSiteUrl));
         const result = await apiRequest<DataResponse<LoginResult>>(
           "/auth/login",
           {
@@ -132,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return result.data.message;
       },
     }),
-    [csrfToken, loading, restore, sessionExpired, user],
+    [csrfToken, loading, publicSiteUrl, restore, sessionExpired, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

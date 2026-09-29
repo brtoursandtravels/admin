@@ -8,7 +8,6 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { Archive, Eye, FileText, LockKeyhole, Plus, Search, UnlockKeyhole } from "lucide-react";
 import { apiRequest, privateMediaUrl, type DataResponse, type PageResponse } from "../api";
 import { useAuth } from "../auth";
-import { env } from "../env";
 import type { PackageSummary } from "../types";
 import { articleSlug, articleText, blankBlog, blogPayload, blogSchema, blogToForm, type BlogCategory, type BlogForm, type BlogPost, type BlogSummary } from "../lib/blog-editor";
 import { BlogTaxonomyManager } from "../components/BlogTaxonomyManager";
@@ -65,7 +64,7 @@ function SavedArticlePreview({ id, onClose }: { id: string; onClose: () => void 
 }
 
 function BlogEditor({ post }: { post?: BlogPost }) {
-  const { csrfToken } = useAuth();
+  const { csrfToken, publicSiteUrl } = useAuth();
   const { notify } = useToast();
   const client = useQueryClient();
   const navigate = useNavigate();
@@ -137,6 +136,6 @@ function BlogEditor({ post }: { post?: BlogPost }) {
     </form>
     {preview && <EditorDialog title="Article preview" onClose={() => setPreview(false)}><article className="mx-auto max-w-3xl"><p className="text-xs font-bold text-admin-brand">Unsaved preview · {categories.data?.data.find(item => item.id === values.categoryId)?.name ?? "Travel journal"}</p><h1 className="mb-4 text-3xl font-bold leading-tight wrap-anywhere">{values.title || "Your article title"}</h1><p className="mb-5 text-lg leading-7 text-admin-ink-muted">{values.excerpt || "Your short description will appear here."}</p>{values.coverMediaId && <img className="mb-6 aspect-video w-full rounded-xl object-cover" src={privateMediaUrl(values.coverMediaId)} alt="Article cover preview" />}<Suspense fallback={<LoadingPanel />}><RichTextEditor id="article-preview-content" value={values.contentHtml} readOnly /></Suspense></article></EditorDialog>}
     {categoryOpen && <EditorDialog title="New blog category" busy={createCategory.isPending} onClose={() => setCategoryOpen(false)}><form className="admin-form" onSubmit={event => { event.preventDefault(); if (categoryName.trim().length >= 2 && !createCategory.isPending) createCategory.mutate(); }}><label><FieldLabel required>Name</FieldLabel><input aria-required="true" aria-label="Name" autoFocus value={categoryName} disabled={createCategory.isPending} maxLength={160} minLength={2} required onChange={event => setCategoryName(event.target.value)} /></label>{createCategory.isError && <ErrorPanel error={createCategory.error} />}<Button type="submit" disabled={createCategory.isPending || categoryName.trim().length < 2}>{createCategory.isPending ? "Adding…" : "Add category"}</Button></form></EditorDialog>}
-    {record?.status === "PUBLISHED" && <p className="mt-4 text-center text-xs"><Link to={new URL(`/blog/${record.slug}`, env.publicSiteUrl).toString()} target="_blank" rel="noreferrer" className="font-bold text-admin-brand underline underline-offset-4">Open public article</Link></p>}
+    {record?.status === "PUBLISHED" && publicSiteUrl && <p className="mt-4 text-center text-xs"><Link to={new URL(`/blog/${record.slug}`, publicSiteUrl).toString()} target="_blank" rel="noreferrer" className="font-bold text-admin-brand underline underline-offset-4">Open public article</Link></p>}
   </>;
 }

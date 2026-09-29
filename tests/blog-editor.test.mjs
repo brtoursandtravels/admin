@@ -10,7 +10,7 @@ const base = process.env.BLOG_TEST_BASE_URL || "http://127.0.0.1:5198";
 let vite, browser;
 before(async () => {
   if (!process.env.BLOG_TEST_BASE_URL) {
-    vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, VITE_API_BASE_URL: "/api/v1", VITE_PUBLIC_SITE_URL: base, VITE_API_PROXY_TARGET: "" } });
+    vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5198", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, API_PROXY_TARGET: "" } });
     for (let i = 0; i < 120; i++) { if (vite.exitCode !== null) throw new Error("Blog test server could not start"); if (await fetch(`${base}/admin/`).then(response => response.ok).catch(() => false)) break; await delay(250); }
   }
   browser = await chromium.launch({ headless: true });
@@ -24,7 +24,7 @@ async function setup(t, path = "blog/new", overrides = {}) {
   await context.route("**/api/v1/**", async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname.replace("/api/v1", "");
     const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
-    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", authenticated: true, user: { id: "test", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
+    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", publicSiteUrl: base, authenticated: true, user: { id: "test", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
     if (path === "/admin/dashboard") return json({ data: { newEnquiries: 0, failedNotifications: 0 } });
     if (request.method() === "GET") state.reads.push(url.pathname + url.search);
     else state.writes.push({ path, method: request.method(), csrf: request.headers()["x-csrf-token"], body: request.postDataJSON() });
@@ -104,6 +104,7 @@ test("new blog validates visible text, formats content, previews unsaved changes
 test("existing formatting, article addresses, relations and precise publish times survive editing", async t => {
   const { page, state } = await setup(t, "blog/story/edit");
   await content(page).locator("blockquote").waitFor();
+  assert.equal(await page.getByRole("link", { name: "Open public article" }).getAttribute("href"), `${base}/blog/${fixture.slug}`);
   await page.getByText("All changes saved", { exact: true }).waitFor();
   assert.equal(await page.getByLabel("Publish date & time", { exact: true }).inputValue(), "2026-09-20T16:50");
   await page.getByLabel("Article title", { exact: true }).fill("Renamed travel story");

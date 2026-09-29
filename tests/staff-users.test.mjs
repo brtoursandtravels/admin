@@ -9,7 +9,7 @@ import { chromium } from "playwright";
 const base = "http://127.0.0.1:5202";
 let vite, browser;
 before(async () => {
-  vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5202", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, VITE_API_BASE_URL: "/api/v1", VITE_API_PROXY_TARGET: "" } });
+  vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5202", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, API_PROXY_TARGET: "" } });
   for (let attempt = 0; attempt < 100; attempt++) { if (vite.exitCode !== null) throw new Error("Staff test server did not start"); if (await fetch(`${base}/admin/`).then(r => r.ok).catch(() => false)) break; await delay(250); }
   browser = await chromium.launch({ headless: true });
 });
@@ -23,7 +23,7 @@ async function setup(t, path = "users", role = "SUPER_ADMIN") {
     const request = route.request();
     const path = new URL(request.url()).pathname.replace("/api/v1", "");
     const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
-    if (path === "/auth/csrf") return json({ data: { authenticated: state.authenticated, user: state.authenticated ? state.user : null, csrfToken: "staff-csrf" } });
+    if (path === "/auth/csrf") return json({ data: { authenticated: state.authenticated, user: state.authenticated ? state.user : null, csrfToken: "staff-csrf", publicSiteUrl: base } });
     if (request.method() === "GET") state.reads.push(path);
     else state.writes.push({ path, body: request.postDataJSON(), csrf: request.headers()["x-csrf-token"] });
     if (path === "/admin/dashboard") return json({ data: { packages: 0, publishedPackages: 0, upcomingDepartures: 0, newEnquiries: 0, draftPosts: 0, publishedPosts: 0, enquiryStatusCounts: {}, enquiryTrend: [], generatedAt: "2026-09-25T00:00:00Z" } });

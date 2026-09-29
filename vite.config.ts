@@ -3,19 +3,19 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
+  const env = loadEnv(mode, process.cwd(), "API_");
   return {
     base: "/admin/",
     plugins: [react(), tailwindcss()],
     server: {
-      proxy: env.VITE_API_PROXY_TARGET
+      proxy: env.API_PROXY_TARGET
         ? {
             "/api/v1": {
-              target: env.VITE_API_PROXY_TARGET,
+              target: env.API_PROXY_TARGET,
               changeOrigin: false,
             },
             "/media": {
-              target: env.VITE_API_PROXY_TARGET,
+              target: env.API_PROXY_TARGET,
               changeOrigin: false,
             },
           }

@@ -14,7 +14,7 @@ before(async () => {
     vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5201", "--strictPort"], {
       windowsHide: true,
       stdio: "pipe",
-      env: { ...process.env, VITE_API_BASE_URL: "/api/v1", VITE_PUBLIC_SITE_URL: base, VITE_API_PROXY_TARGET: "" },
+      env: { ...process.env, API_PROXY_TARGET: "" },
     });
     for (let attempt = 0; attempt < 120; attempt += 1) {
       if (vite.exitCode !== null) throw new Error("Engagement test server could not start.");
@@ -53,7 +53,7 @@ async function setup(t, route = "content/engagement?view=testimonials", records 
     const url = new URL(request.url());
     const path = url.pathname.replace("/api/v1", "");
     const json = (body, status = 200) => intercepted.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
-    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", authenticated: true, user: { id: "test", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
+    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", publicSiteUrl: base, authenticated: true, user: { id: "test", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
     if (path === "/admin/dashboard") return json({ data: { newEnquiries: 0 } });
     if (path === "/admin/faqs" && request.method() === "GET") return json({ data: [{ id: "faq-1", packageId: null, question: "When should I book?", answer: "Book as early as possible.", sortOrder: 0, status: "PUBLISHED", publishedAt: past, isDemo: false }] });
     if (path === "/admin/testimonials" && request.method() === "GET") return json({ data: records });

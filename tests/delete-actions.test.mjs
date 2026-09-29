@@ -11,7 +11,7 @@ before(async () => {
   if (!process.env.DELETE_TEST_BASE_URL) {
   vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5192", "--strictPort"], {
     windowsHide: true, stdio: "pipe",
-    env: { ...process.env, VITE_API_BASE_URL: "/api/v1", VITE_PUBLIC_SITE_URL: base, VITE_API_PROXY_TARGET: "" },
+    env: { ...process.env, API_PROXY_TARGET: "" },
   });
   for (let attempt = 0; attempt < 80; attempt++) {
     if (vite.exitCode !== null) throw new Error("The test Vite server could not start.");
@@ -49,7 +49,7 @@ async function setup(t, options = {}) {
       return route.fulfill({ status: 204 });
     }
     if (request.method() !== "GET") throw new Error(`Unexpected write: ${request.method()} ${path}`);
-    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", authenticated: true, user: { id: "test-admin", displayName: "Test admin", email: "test@example.com", role: "SUPER_ADMIN" } } });
+    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", publicSiteUrl: base, authenticated: true, user: { id: "test-admin", displayName: "Test admin", email: "test@example.com", role: "SUPER_ADMIN" } } });
     if (path === "/admin/dashboard") return json({ data: { newEnquiries: 0, failedNotifications: 0 } });
     if (path === "/admin/packages") return json({ data: state.rows, meta: { page: Number(url.searchParams.get("page") || 1), pageSize: 25, total: state.rows.length + (options.secondPage ? 25 : 0) } });
     if (path === "/admin/packages/test-package") return json({ data: fixture });

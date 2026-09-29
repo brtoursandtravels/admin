@@ -9,7 +9,7 @@ import { join } from "node:path";
 const base = "http://127.0.0.1:5194";
 let vite, browser;
 before(async () => {
-  vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5194", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, VITE_API_BASE_URL: "/api/v1", VITE_PUBLIC_SITE_URL: base, VITE_API_PROXY_TARGET: "" } });
+  vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5194", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, API_PROXY_TARGET: "" } });
   for (let i = 0; i < 120; i++) { if (await fetch(`${base}/admin/`).then(r => r.ok).catch(() => false)) break; await delay(250); }
   browser = await chromium.launch({ headless: true });
 });
@@ -33,7 +33,7 @@ async function setup(t, create = false, recordOverrides = {}) {
     const request = route.request(); const url = new URL(request.url()); const path = url.pathname.replace("/api/v1", "");
     const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     if (request.method() !== "GET") state.writes.push({ path, method: request.method(), csrf: request.headers()["x-csrf-token"], body: request.headers()["content-type"]?.includes("application/json") ? request.postDataJSON() : null });
-    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", authenticated: true, user: { id: "test-admin", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
+    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", publicSiteUrl: base, authenticated: true, user: { id: "test-admin", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
     if (path === "/admin/dashboard") return json({ data: { newEnquiries: 0, failedNotifications: 0 } });
     if (path === "/admin/categories") return json({ data: categoryMaster });
     if (path === "/admin/media" && request.method() === "POST") {
@@ -80,6 +80,14 @@ test("wizard validates basics, syncs slug/duration and saves an incomplete draft
   await page.reload();
   await page.getByRole("textbox", { name: "Destinations", exact: true }).waitFor();
   assert.equal(await page.getByRole("textbox", { name: "Destinations", exact: true }).inputValue(), "Gangtok");
+  assert.deepEqual(state.errors, []);
+});
+test("published package link and search preview use the API public site address", async t => {
+  const { page, state } = await setup(t, false, { status: "PUBLISHED" });
+  await page.getByRole("tab", { name: "Publishing", exact: true }).click();
+  const publicUrl = `${base}/packages/${fixture.slug}`;
+  assert.equal(await page.getByRole("link", { name: "View public page" }).getAttribute("href"), publicUrl);
+  await page.getByText(publicUrl, { exact: true }).waitFor();
   assert.deepEqual(state.errors, []);
 });
 test("category radios use master options, replace the selection and retain it after saving", async t => {

@@ -8,7 +8,6 @@ import { Check, Circle, CircleAlert, LockKeyhole, UnlockKeyhole } from "lucide-r
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiRequest, privateMediaUrl, type DataResponse } from "../api";
 import { useAuth } from "../auth";
-import { env } from "../env";
 import type { MediaAsset, PackageRecord, Taxonomy } from "../types";
 import { blankForm, formToPayload, overviewExcerpt, packageFormSchema, recordToForm, type PackageForm } from "../lib/package-editor";
 import { DeleteButton } from "../components/DeleteButton";
@@ -34,7 +33,7 @@ export function PackageEditorPage() {
   const editing = Boolean(id);
   const navigate = useNavigate();
   const client = useQueryClient();
-  const { csrfToken } = useAuth();
+  const { csrfToken, publicSiteUrl } = useAuth();
   const { notify } = useToast();
   const confirm = useConfirm();
   const [tab, setTab] = useState<Tab>("Basics");
@@ -78,7 +77,8 @@ export function PackageEditorPage() {
   });
   const cover = coverQuery.data?.data;
   const checkingCover = Boolean(coverId && coverQuery.isPending);
-  const publicUrl = `${env.publicSiteUrl.replace(/\/$/, "")}/packages/${values.slug}`;
+  const packagePath = `/packages/${encodeURIComponent(values.slug)}`;
+  const publicUrl = publicSiteUrl ? new URL(packagePath, publicSiteUrl).toString() : packagePath;
   const readiness = [
     { label: "Basic information completed", ready: !tabErrors("Basics"), tab: "Basics" as Tab },
     { label: "Overview completed", ready: description.length >= 20, tab: "Content" as Tab },
@@ -227,7 +227,7 @@ export function PackageEditorPage() {
         <label className="flex items-center gap-2 text-sm"><input type="checkbox" {...form.register("isFeatured")} />Feature this package</label>
         <SeoFields titleField={form.register("seoTitle")} descriptionField={form.register("seoDescription")} titleValue={values.seoTitle} descriptionValue={values.seoDescription} fallbackTitle={values.title} fallbackDescription={description} titleError={form.formState.errors.seoTitle?.message} descriptionError={form.formState.errors.seoDescription?.message} />
         <div className="rounded-xl border border-admin-border p-4"><h3 className="mt-0 text-sm font-bold">Search and sharing preview</h3><p className="break-all text-xs text-admin-ink-muted">{publicUrl}</p><p className="mb-1 text-xl text-blue-700">{values.seoTitle || values.title || "Package title"}</p><p className="text-sm text-admin-ink-muted">{values.seoDescription || description || "Your description appears here."}</p>{coverId ? <img className="mt-3 aspect-video w-full max-w-sm rounded-lg object-cover" src={privateMediaUrl(coverId)} alt={cover?.altText ?? "Cover preview"} /> : null}<p className="text-xs text-admin-ink-subtle">Preview only. Search engines and messaging apps may display different text or crops.</p></div>
-        {editing && packageQuery.data?.data.status === "PUBLISHED" ? <a href={`${env.publicSiteUrl.replace(/\/$/, "")}/packages/${packageQuery.data.data.slug}`} target="_blank" rel="noreferrer" className="text-sm font-bold text-admin-brand">View public page</a> : null}
+        {editing && packageQuery.data?.data.status === "PUBLISHED" && publicSiteUrl ? <a href={new URL(`/packages/${encodeURIComponent(packageQuery.data.data.slug)}`, publicSiteUrl).toString()} target="_blank" rel="noreferrer" className="text-sm font-bold text-admin-brand">View public page</a> : null}
       </> : null}
       </div>
       <div className="mt-6 flex flex-wrap justify-between gap-3 border-t border-admin-border pt-4"><Button type="button" variant="secondary" disabled={index === 0 || busyFiles > 0} onClick={() => void nextTab(tabs[index - 1]!)}>Previous{index > 0 ? `: ${tabs[index - 1]}` : ""}</Button>{index < tabs.length - 1 ? <Button type="button" disabled={locked} onClick={() => void nextTab(tabs[index + 1]!)}>Next: {tabs[index + 1]}</Button> : <Button type="button" disabled={locked} onClick={() => void submit("PUBLISHED")}>Publish package</Button>}</div>

@@ -7,8 +7,8 @@ all preserve nested-route refreshes.
 Vercel serves the build's public files at the root. Keep the explicit
 `/admin/br-logo.png` and `/admin/favicon.png` rewrites before the admin SPA
 fallback so both login logos and the sidebar logo receive images, not HTML.
-Authenticated session restoration uses the user included in `/auth/csrf`, with
-an `/auth/me` fallback for older API deployments.
+Authenticated session restoration uses the user and public site URL included in
+`/auth/csrf`, with an `/auth/me` fallback for older API deployments.
 
 Package tables and relation selectors request `/admin/packages?view=summary`;
 edit, preview and duplication continue to load the full individual package.
@@ -31,10 +31,15 @@ rules and consumes those variables; it does not define independent colours.
 
 ## Environment
 
-- `.env.local` contains local browser-safe settings.
+- Copy `.env.example` to `.env.local` and set `API_PROXY_TARGET` to the local API
+  origin (usually `http://localhost:4000`). Vite uses it only to proxy `/api/v1`
+  and `/media` while developing.
+- Browser API calls always use `/api/v1`. On Vercel, `vercel.json` routes those
+  calls to the API. The API returns its `PUBLIC_SITE_URL` in `/auth/csrf` for
+  links to public packages and articles.
 
-Only `VITE_`-prefixed public values belong here. Database, SMTP, storage and
-session secrets belong only in the API project.
+Keep database, SMTP, storage, session and deployment credentials in their
+respective server or deployment settings, not in admin environment files.
 
 ## Reusable delete actions
 

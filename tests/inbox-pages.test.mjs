@@ -9,7 +9,7 @@ const base = process.env.INBOX_TEST_BASE_URL || 'http://127.0.0.1:5196';
 let vite, browser;
 before(async () => {
  if (!process.env.INBOX_TEST_BASE_URL) {
-  vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5196','--strictPort'],{windowsHide:true,stdio:'pipe',env:{...process.env,VITE_API_BASE_URL:'/api/v1',VITE_PUBLIC_SITE_URL:base,VITE_API_PROXY_TARGET:''}});
+  vite=spawn(process.execPath,['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port','5196','--strictPort'],{windowsHide:true,stdio:'pipe',env:{...process.env,API_PROXY_TARGET:''}});
   for(let i=0;i<120;i++){if(vite.exitCode!==null) throw new Error('Inbox test server failed to start');if(await fetch(base+'/admin/').then(r=>r.ok).catch(()=>false))break;await delay(250);}
  }
  browser=await chromium.launch({headless:true});
@@ -25,7 +25,7 @@ async function setup(t,path='enquiries'){
  await context.route('**/api/v1/**',async route=>{
   const req=route.request(),url=new URL(req.url()),path=url.pathname.replace('/api/v1',''),params=url.searchParams;
   const json=(body,status=200)=>route.fulfill({status,contentType:'application/json',body:JSON.stringify(body)});
-  if(path==='/auth/csrf')return json({data:{authenticated:true,csrfToken:'test-csrf',user:{id:'test',email:'test@example.com',displayName:'Test admin',role:'SUPER_ADMIN'}}});
+  if(path==='/auth/csrf')return json({data:{authenticated:true,csrfToken:'test-csrf',publicSiteUrl:base,user:{id:'test',email:'test@example.com',displayName:'Test admin',role:'SUPER_ADMIN'}}});
   if(path==='/admin/dashboard')return json({data:{newEnquiries:6}});
   if(path==='/admin/assignees')return json({data:staff});
   if(req.method()==='GET')state.reads.push(path+url.search);

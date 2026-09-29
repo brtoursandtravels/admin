@@ -8,7 +8,7 @@ const base = process.env.SETTINGS_TEST_BASE_URL || "http://127.0.0.1:5197";
 let vite, browser;
 before(async () => {
   if (!process.env.SETTINGS_TEST_BASE_URL) {
-    vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5197", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, VITE_API_BASE_URL: "/api/v1", VITE_PUBLIC_SITE_URL: base, VITE_API_PROXY_TARGET: "" } });
+    vite = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "--host", "127.0.0.1", "--port", "5197", "--strictPort"], { windowsHide: true, stdio: "pipe", env: { ...process.env, API_PROXY_TARGET: "" } });
     for (let i = 0; i < 120; i++) { if (vite.exitCode !== null) throw new Error("Settings test server could not start"); if (await fetch(`${base}/admin/`).then(response => response.ok).catch(() => false)) break; await delay(250); }
   }
   browser = await chromium.launch({ headless: true });
@@ -27,7 +27,7 @@ async function setup(t, path = "content/settings") {
   await context.route("**/api/v1/**", async route => {
     const request = route.request(), path = new URL(request.url()).pathname.replace("/api/v1", "");
     const json = (body, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
-    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", authenticated: true, user: { id: "test", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
+    if (path === "/auth/csrf") return json({ data: { csrfToken: "test-csrf", publicSiteUrl: base, authenticated: true, user: { id: "test", displayName: "Test", email: "test@example.com", role: "SUPER_ADMIN" } } });
     if (path === "/admin/dashboard") return json({ data: { newEnquiries: 0, failedNotifications: 0 } });
     if (path === "/admin/settings" && request.method() === "GET") return json({ data: state.settings });
     if (path.startsWith("/admin/settings/") && request.method() === "PUT") {
